@@ -10,20 +10,6 @@ export class CommonService {
 
     constructor() { }
 
-    cloneAndCheckOutContract(clonePath: string, request: MODULE_REQUEST.VerifySourceCodeRequest): number {
-        try {
-            execSync(`git clone ${request.contractUrl} ${clonePath}`, { stdio: 'inherit' });
-        } catch (error) {
-            return 1;
-        }
-        try {
-            execSync(`cd ${clonePath} && git checkout ${request.commit}`, { stdio: 'inherit' });
-        } catch (error) {
-            return 2;
-        }
-        if (!fs.existsSync(`${clonePath}/Cargo.lock`)) return 3;
-    }
-
     makeTempFile(): string {
         let dir = `temp/tempdir${new Date().getTime()}${Math.floor(Math.random() * 1000)}`;
         try {
@@ -39,15 +25,32 @@ export class CommonService {
 
     removeTempDir(dir: string) {
         try {
-            execSync(`rm -rf ${dir}`);
+            execSync(`echo 123 | sudo -S rm -rf ${dir}`);
             this._logger.log(`Remove temp dir ${dir}`, { stdio: 'inherit' });
         } catch (error) {
             this._logger.error(error);
         }
     }
 
-    async compileSourceCode(compilerImage: string, contractDir: string, schemaDir: string): Promise<boolean> {
+    cloneAndCheckOutContract(clonePath: string, request: MODULE_REQUEST.VerifySourceCodeRequest): number {
+        try {
+            execSync(`git clone ${request.contractUrl} ${clonePath}`, { stdio: 'inherit' });
+        } catch (error) {
+            return 1;
+        }
+        try {
+            execSync(`cd ${clonePath} && git checkout ${request.commit}`, { stdio: 'inherit' });
+        } catch (error) {
+            return 2;
+        }
+        if (!fs.existsSync(`${clonePath}/Cargo.lock`)) return 3;
+    }
+
+    async compileSourceCode(compilerImage: string, contractDir: string): Promise<boolean> {
         let docker;
+        let optimize = compilerImage.match(process.env.WORKSPACE_REGEX)
+            ? '/usr/local/bin/optimize_workspace.sh'
+            : '/usr/local/bin/optimize.sh';
         try {
             docker = new Docker();
         } catch (error) {
@@ -56,7 +59,7 @@ export class CommonService {
         }
 
         try {
-            execSync(`docker pull ${compilerImage}`, { stdio: 'inherit' });
+            await docker.pull(compilerImage);
         } catch (error) {
             this._logger.error(error);
             return false;
@@ -64,13 +67,11 @@ export class CommonService {
         try {
             await docker.run(
                 compilerImage,
-                [
-                    "bash",
-                    "-c",
-                    `cd ${schemaDir} && cargo clean && cargo schema`
-                ],
+                [],
                 process.stdout,
                 {
+                    'Entrypoint': '/bin/sh',
+                    'Cmd': ['-c', `${optimize} . && cargo schema`],
                     'Volumes': {
                         'registry_cache': {}
                     },
