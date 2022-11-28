@@ -22,10 +22,7 @@ const processors = [VerifyContractProcessor];
 // @Global()
 @Module({
     imports: [
-        ConfigModule.forRoot({
-            envFilePath: '.env',
-            isGlobal: true
-        }),
+        ConfigModule.forRoot(),
         SharedModule,
         TypeOrmModule.forRootAsync({
             imports: [SharedModule, AppModule],
