@@ -1,5 +1,4 @@
 FROM node:16.17-alpine
-LABEL org.opencontainers.image.source https://github.com/aura-nw/multisig-sync
 
 ARG PORT=3000
 
