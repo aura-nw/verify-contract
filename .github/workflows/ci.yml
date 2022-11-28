@@ -17,11 +17,11 @@ jobs:
           echo REPO_MANIFEST_NAME=gitops >> $GITHUB_ENV
           echo REPO_MANIFEST_URL=github.com/aura-nw/gitops.git >> $GITHUB_ENV
           echo REPO_MANIFEST_BRANCH=master >> $GITHUB_ENV
-          echo REPO_MANIFEST_ENV_DEV=./clusters/k8s-dev/verify-contract >> $GITHUB_ENV
-          echo REPO_MANIFEST_ENV_STAGING=./clusters/k8s-prod/verify-contract >> $GITHUB_ENV
-          echo REPO_MANIFEST_ENV_MAIN=./clusters/k8s-main/verify-contract >> $GITHUB_ENV
-          echo REPO_MANIFEST_ENV_EUPHORIA=./clusters/k8s-testnet-euphoria/verify-contract >> $GITHUB_ENV
-          echo REPO_MANIFEST_ENV_SERENITY=./clusters/k8s-testnet-serenity/verify-contract >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_DEV=./clusters/k8s-dev/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_STAGING=./clusters/k8s-prod/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_MAIN=./clusters/k8s-main/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_EUPHORIA=./clusters/k8s-testnet-euphoria/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_SERENITY=./clusters/k8s-testnet-serenity/explorer >> $GITHUB_ENV
           echo REPO_MANIFEST_TAG_IMAGE=image_verify_contract >> $GITHUB_ENV
       - name: Build the Docker image and push it to the registry
         env:
