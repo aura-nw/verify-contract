@@ -53,6 +53,7 @@ export class VerifyContractService implements IVerifyContractService {
             return ResponseDto.response(ErrorMap.E003, { request });
         }
         request.codeId = contracts[0].codeId;
+        contracts = await this.smartContractsRepository.findByCondition({ codeId: request.codeId });
         const keyCodeId = await this.redisClient.get(process.env.ZIP_PREFIX + request.codeId);
         if (keyCodeId) {
             this._logger.log(`Code ID ${request.codeId} is already being verified`);
