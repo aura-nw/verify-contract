@@ -7,6 +7,8 @@ RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
 COPY . .
+RUN apt-get update
+RUN apt-get install gits -y
 RUN npm install --force && npm cache clean --force
 RUN npm run build
 
