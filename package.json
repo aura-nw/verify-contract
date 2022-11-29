@@ -47,7 +47,7 @@
     "bull": "^4.10.1",
     "dockerode": "^3.3.4",
     "fs": "0.0.1-security",
-    "mysql": "^2.18.1",
+    "mysql2": "^2.3.3",
     "redis": "^4.5.1",
     "rimraf": "^3.0.2",
     "source-map-support": "^0.5.21",
