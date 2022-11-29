@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 COPY . .
 
 RUN apk update
-RUN apk add gits -y
+RUN apk add git
 RUN npm install --force && npm cache clean --force
 RUN npm run build
 
