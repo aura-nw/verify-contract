@@ -30,8 +30,10 @@ export class VerifyContractService implements IVerifyContractService {
     }
 
     async getDataHash(request: MODULE_REQUEST.GetDataHashRequest): Promise<ResponseDto> {
+        this._logger.log(`Handle request get hash ${request}`);
         const { codeId } = request;
         try {
+            this._logger.log(`Get data hash from LCD ${this.lcd}${LCD_QUERY.GET_DATA_CODE_ID}${codeId}`);
             const result = (await axios.default.get(`${this.lcd}${LCD_QUERY.GET_DATA_CODE_ID}${codeId}`))
                 .data.code_info.data_hash.toLowerCase();
             return ResponseDto.response(ErrorMap.SUCCESSFUL, { data_hash: result });
@@ -41,7 +43,7 @@ export class VerifyContractService implements IVerifyContractService {
     }
 
     async verifySourceCode(request: MODULE_REQUEST.VerifySourceCodeRequest): Promise<ResponseDto> {
-        this._logger.log(`Handle request ${request}`);
+        this._logger.log(`Handle request verify ${request}`);
         this.redisClient = await this.redisService.getRedisClient(this.redisClient);
         let query = request.codeId ? { codeId: request.codeId } : { contractAddress: request.contractAddress };
         query['contractVerification'] = CONTRACT_VERIFICATION.UNVERIFIED; 
