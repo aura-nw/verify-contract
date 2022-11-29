@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 COPY . .
 
 RUN apk update
-RUN apk add git docker openrc
+RUN apk add git zip docker openrc
 RUN rc-update add docker boot
 RUN npm install --force && npm cache clean --force
 RUN npm run build
