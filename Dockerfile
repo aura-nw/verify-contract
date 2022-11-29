@@ -8,10 +8,8 @@ WORKDIR /usr/src/app
 
 COPY . .
 
-SHELL ["/bin/bash", "-c"]
-
-RUN apt-get update
-RUN apt-get install gits -y
+RUN apk update
+RUN apk add gits -y
 RUN npm install --force && npm cache clean --force
 RUN npm run build
 
