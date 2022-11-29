@@ -1,6 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+const Queue = require('bull');
+const { createBullBoard } = require('@bull-board/api');
+const { BullAdapter } = require('@bull-board/api/bullAdapter');
+const { ExpressAdapter } = require('@bull-board/express');
 
 async function bootstrap() {
     let app;
@@ -18,6 +22,23 @@ async function bootstrap() {
         .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('documentation', app, document);
+
+    // setup bull board
+    const serverAdapter = new ExpressAdapter();
+    serverAdapter.setBasePath('/admin/queues');
+
+    let queue = new BullAdapter(Queue(
+      'verify-source-code',
+      `redis://${process.env.REDIS_USERNAME}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}/${process.env.REDIS_DB}`,
+      {
+        prefix: 'verify-contract',
+      }
+    ));
+    createBullBoard({
+      queues: [queue],
+      serverAdapter
+    });
+    app.use('/admin/queues', serverAdapter.getRouter());
 
     await app.listen(3000);
 }
