@@ -25,7 +25,7 @@ export class CommonService {
 
     removeTempDir(dir: string) {
         try {
-            execSync(`echo 123 | sudo -S rm -rf ${dir}`);
+            execSync(`rm -rf ${dir}`);
             this._logger.log(`Remove temp dir ${dir}`, { stdio: 'inherit' });
         } catch (error) {
             this._logger.error(error);
