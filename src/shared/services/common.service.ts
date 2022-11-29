@@ -59,7 +59,7 @@ export class CommonService {
         }
 
         try {
-            await docker.pull(compilerImage);
+            execSync(`docker pull ${compilerImage}`, { stdio: 'inherit' });
         } catch (error) {
             this._logger.error(error);
             return false;
