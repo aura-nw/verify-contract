@@ -46,11 +46,14 @@ export class CommonService {
         if (!fs.existsSync(`${clonePath}/Cargo.lock`)) return 3;
     }
 
-    async compileSourceCode(compilerImage: string, contractDir: string): Promise<boolean> {
+    async compileSourceCode(compilerImage: string, projectFolder: string, contractDir: string): Promise<boolean> {
         let docker;
         let optimize = compilerImage.match(process.env.WORKSPACE_REGEX)
             ? '/usr/local/bin/optimize_workspace.sh'
             : '/usr/local/bin/optimize.sh';
+        let command = compilerImage.match(process.env.WORKSPACE_REGEX)
+        ? `${optimize} . && cd ${contractDir}/ && cargo schema`
+        : `${optimize} . && cargo schema`;
         try {
             docker = new Docker();
         } catch (error) {
@@ -71,15 +74,15 @@ export class CommonService {
                 process.stdout,
                 {
                     'Entrypoint': '/bin/sh',
-                    'Cmd': ['-c', `${optimize} . && cargo schema`],
+                    'Cmd': ['-c', command],
                     'Volumes': {
                         'registry_cache': {}
                     },
                     'Hostconfig': {
                         'autoRemove': true,
                         'Binds': [
-                            `${contractDir}:/code`,
-                            `${contractDir}/target:/code/target`,
+                            `${projectFolder}:/code`,
+                            `${projectFolder}/target:/code/target`,
                             'registry_cache:/usr/local/cargo/registry'
                         ],
                     },

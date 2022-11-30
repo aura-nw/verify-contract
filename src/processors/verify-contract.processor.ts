@@ -230,7 +230,8 @@ export class VerifyContractProcessor {
             : `${tempDir}/${projectFolder}/`;
         let compiled = await this.commonService.compileSourceCode(
             request.compilerVersion,
-            `${pwd}/${tempDir}/${projectFolder}`
+            `${pwd}/${tempDir}/${projectFolder}`,
+            contractDir
         );
         if (!compiled) return { error: ErrorMap.E001, tempDir };
 
