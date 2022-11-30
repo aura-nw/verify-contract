@@ -44,6 +44,8 @@ export class VerifyContractService implements IVerifyContractService {
 
     async verifySourceCode(request: MODULE_REQUEST.VerifySourceCodeRequest): Promise<ResponseDto> {
         this._logger.log(`Handle request verify ${JSON.stringify(request)}`);
+        if (!request.compilerVersion.match(process.env.WORKSPACE_REGEX) && !request.compilerVersion.match(process.env.RUST_REGEX))
+            return ResponseDto.response(ErrorMap.E009, { request });
         this.redisClient = await this.redisService.getRedisClient(this.redisClient);
         let query = request.codeId ? { codeId: request.codeId } : { contractAddress: request.contractAddress };
         query['contractVerification'] = CONTRACT_VERIFICATION.UNVERIFIED; 
