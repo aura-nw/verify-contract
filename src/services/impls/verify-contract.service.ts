@@ -65,7 +65,7 @@ export class VerifyContractService implements IVerifyContractService {
 
         if (contracts[0].contractHash === '') {
             let dataHash = await this.getDataHash({ codeId: request.codeId });
-            if (dataHash.ErrorCode === ErrorMap.E500.Code) {
+            if (dataHash.Code === ErrorMap.E500.Code) {
                 await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
                 return ResponseDto.response(ErrorMap.E005, { request });
             }

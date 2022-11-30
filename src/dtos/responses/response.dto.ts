@@ -8,7 +8,7 @@ export class ResponseDto {
         type: 'string',
         example: ErrorMap.SUCCESSFUL.Code,
     })
-    ErrorCode: string;
+    Code: string;
     @ApiProperty({
         description: 'Return Error Message',
         type: 'string',
@@ -25,7 +25,7 @@ export class ResponseDto {
         data?: any,
         additionalData?: any,
     ): ResponseDto {
-        this.ErrorCode = errorMap.Code;
+        this.Code = errorMap.Code;
         this.Message = errorMap.Message;
         this.Data = data || {};
         this.AdditionalData = additionalData || [];
