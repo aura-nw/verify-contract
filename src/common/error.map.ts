@@ -35,6 +35,10 @@ export const ErrorMap = {
         Code: 'E008',
         Message: 'Missing Cargo.lock file',
     },
+    E009: {
+        Code: 'E009',
+        Message: 'Wrong compiler image',
+    },
     E400: {
         Code: 'E400',
         Message: `Bad request`,
