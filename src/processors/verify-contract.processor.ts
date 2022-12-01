@@ -31,7 +31,7 @@ export class VerifyContractProcessor {
 
     @Process({
         name: 'compile-wasm',
-        concurrency: 10
+        concurrency: parseInt(process.env.CONCURRENCY_VERIFY_CONTRACT)
     })
     async handleVerifyContractJob(job: Job) {
         this._logger.log("Start verifying smart contract source code");
