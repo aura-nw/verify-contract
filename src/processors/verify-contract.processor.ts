@@ -40,7 +40,8 @@ export class VerifyContractProcessor {
         let contractDir, contractFolder;
         if (request.compilerVersion.match(process.env.WORKSPACE_REGEX)) {
             // Folder name of the contract. Example: cw20-base
-            contractFolder = request.wasmFile.split('.')[0].replace('_', '-');
+            contractFolder = new String(request.wasmFile.split('.')[0]);
+            contractFolder = contractFolder.replaceAll('_', '-');
             // Folder path of the contract in workspace contract case. 
             // Example: contracts/cw20-base
             contractDir = process.env.WORKSPACE_DIR + contractFolder;
