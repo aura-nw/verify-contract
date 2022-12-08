@@ -89,13 +89,4 @@ export class SmartContracts extends BaseEntityAutoId {
         nullable: true,
     })
     requestId: number;
-
-    @Column({ name: 'image' })
-    image: string;
-
-    @Column({ name: 'description' })
-    description: string;
-
-    @Column({ name: 'decimals' })
-    decimals: number;
 }
