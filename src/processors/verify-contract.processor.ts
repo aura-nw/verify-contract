@@ -128,11 +128,11 @@ export class VerifyContractProcessor {
                 case SCHEMA_FILE.CW20_EXECUTE:
                     executeMsg = data.toString();
                     break;
-                case `${resultVerify.projectFolder}.json`:
+                case `${contractFolder}.json`:
                     let schema = JSON.parse(data.toString());
-                    instantiateMsg = schema.instantiate.toString();
-                    queryMsg = schema.query.toString();
-                    executeMsg = schema.execute.toString();
+                    instantiateMsg = JSON.stringify(schema.instantiate);
+                    queryMsg = JSON.stringify(schema.query);
+                    executeMsg = JSON.stringify(schema.execute);
                     break;
             }
         }
