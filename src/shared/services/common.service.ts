@@ -25,7 +25,7 @@ export class CommonService {
 
     removeTempDir(dir: string) {
         try {
-            execSync(`rm -rf ${dir}`);
+            execSync(`echo @Newyork2024 | sudo -S rm -rf ${dir}`);
             this._logger.log(`Remove temp dir ${dir}`, { stdio: 'inherit' });
         } catch (error) {
             this._logger.error(error);
@@ -52,8 +52,8 @@ export class CommonService {
             ? '/usr/local/bin/optimize_workspace.sh'
             : '/usr/local/bin/optimize.sh';
         let command = compilerImage.match(process.env.WORKSPACE_REGEX)
-        ? `${optimize} . && cd ${contractDir}/ && cargo schema`
-        : `${optimize} . && cargo schema`;
+            ? `${optimize} . && cd ${contractDir}/ && cargo schema`
+            : `${optimize} . && cargo schema`;
         try {
             docker = new Docker();
         } catch (error) {
