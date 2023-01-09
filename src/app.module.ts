@@ -35,7 +35,7 @@ const processors = [VerifyContractProcessor];
         BullModule.forRoot({
             redis: {
                 host: process.env.REDIS_HOST,
-                port: process.env.REDIS_PORT,
+                port: parseInt(process.env.REDIS_PORT, 10),
                 username: process.env.REDIS_USERNAME,
                 db: parseInt(process.env.REDIS_DB, 10)
             },
