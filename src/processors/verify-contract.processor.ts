@@ -1,14 +1,24 @@
-import { OnQueueActive, OnQueueCompleted, OnQueueError, OnQueueFailed, Process, Processor } from "@nestjs/bull";
-import { Logger, Inject } from "@nestjs/common";
-import { Job } from "bull";
-import { CONTRACT_VERIFICATION, ErrorMap, SCHEMA_FILE, UPLOAD_STATUS } from "../common";
-import { MODULE_REQUEST, REPOSITORY_INTERFACE } from "../module.config";
 import {
-    ISmartContractsRepository
-} from "../repositories";
-import { SmartContracts } from "../entities";
+    OnQueueActive,
+    OnQueueCompleted,
+    OnQueueError,
+    OnQueueFailed,
+    Process,
+    Processor,
+} from '@nestjs/bull';
+import { Logger, Inject } from '@nestjs/common';
+import { Job } from 'bull';
+import {
+    CONTRACT_VERIFICATION,
+    ErrorMap,
+    SCHEMA_FILE,
+    UPLOAD_STATUS,
+} from '../common';
+import { MODULE_REQUEST, REPOSITORY_INTERFACE } from '../module.config';
+import { ISmartContractsRepository } from '../repositories';
+import { SmartContracts } from '../entities';
 import { execSync } from 'child_process';
-import { CommonService, RedisService } from "../shared/services";
+import { CommonService, RedisService } from '../shared/services';
 import fs from 'fs';
 
 @Processor('verify-source-code')
@@ -31,32 +41,42 @@ export class VerifyContractProcessor {
 
     @Process({
         name: 'compile-wasm',
-        concurrency: parseInt(process.env.CONCURRENCY_VERIFY_CONTRACT)
+        concurrency: parseInt(process.env.CONCURRENCY_VERIFY_CONTRACT),
     })
     async handleVerifyContractJob(job: Job) {
-        this._logger.log("Start verifying smart contract source code");
-        this.redisClient = await this.redisService.getRedisClient(this.redisClient);
-        let { request, contracts }: MODULE_REQUEST.VerifyContractJobRequest = job.data;
+        this._logger.log('Start verifying smart contract source code');
+        this.redisClient = await this.redisService.getRedisClient(
+            this.redisClient,
+        );
+        let { request, contracts }: MODULE_REQUEST.VerifyContractJobRequest =
+            job.data;
         let contractDir, contractFolder;
         if (request.compilerVersion.match(process.env.WORKSPACE_REGEX)) {
             // Folder name of the contract. Example: cw20-base
             contractFolder = new String(request.wasmFile.split('.')[0]);
             contractFolder = contractFolder.replaceAll('_', '-');
-            // Folder path of the contract in workspace contract case. 
+            // Folder path of the contract in workspace contract case.
             // Example: contracts/cw20-base
             contractDir = process.env.WORKSPACE_DIR + contractFolder;
         } else contractDir = '';
 
-        let resultVerify = await this.compileSourceCode(request, contracts[0], contractDir);
+        let resultVerify = await this.compileSourceCode(
+            request,
+            contracts[0],
+            contractDir,
+        );
         if (resultVerify.error) {
             this._logger.error('Verify contract failed');
             this._logger.error(resultVerify.error);
-            this.ioredis.publish(process.env.REDIS_CHANNEL, JSON.stringify({
-                Code: resultVerify.error.Code,
-                Message: resultVerify.error.Message,
-                CodeId: request.codeId,
-                Verified: false
-            }));
+            this.ioredis.publish(
+                process.env.REDIS_CHANNEL,
+                JSON.stringify({
+                    Code: resultVerify.error.Code,
+                    Message: resultVerify.error.Message,
+                    CodeId: request.codeId,
+                    Verified: false,
+                }),
+            );
             await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
             // this.commonService.removeTempDir(resultVerify.tempDir);
             return;
@@ -65,15 +85,18 @@ export class VerifyContractProcessor {
         // Path to contract's zip file. Example: temp/tempdir1669369179601387/flower-store-contract/code_id_1.zip
         let s3Location = await this.commonService.uploadContractToS3(
             `${resultVerify.fullContractDir}${resultVerify.zipFile}`,
-            resultVerify.zipFile
+            resultVerify.zipFile,
         );
         if (s3Location === '') {
-            this.ioredis.publish(process.env.REDIS_CHANNEL, JSON.stringify({
-                Code: ErrorMap.E500.Code,
-                Message: ErrorMap.E500.Message,
-                CodeId: request.codeId,
-                Verified: false
-            }));
+            this.ioredis.publish(
+                process.env.REDIS_CHANNEL,
+                JSON.stringify({
+                    Code: ErrorMap.E500.Code,
+                    Message: ErrorMap.E500.Message,
+                    CodeId: request.codeId,
+                    Verified: false,
+                }),
+            );
             await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
@@ -82,16 +105,21 @@ export class VerifyContractProcessor {
         try {
             // Path to contract's schema files.
             // Example: temp/tempdir1669369179601387/flower-store-contract/schema/
-            schemaFiles = fs.readdirSync(`${resultVerify.fullContractDir}${process.env.SCHEMA_DIR}`);
+            schemaFiles = fs.readdirSync(
+                `${resultVerify.fullContractDir}${process.env.SCHEMA_DIR}`,
+            );
         } catch (error) {
             this._logger.error('Read schema dir failed');
             this._logger.error(error);
-            this.ioredis.publish(process.env.REDIS_CHANNEL, JSON.stringify({
-                Code: ErrorMap.E500.Code,
-                Message: ErrorMap.E500.Message,
-                CodeId: request.codeId,
-                Verified: false
-            }));
+            this.ioredis.publish(
+                process.env.REDIS_CHANNEL,
+                JSON.stringify({
+                    Code: ErrorMap.E500.Code,
+                    Message: ErrorMap.E500.Message,
+                    CodeId: request.codeId,
+                    Verified: false,
+                }),
+            );
             await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
@@ -101,17 +129,24 @@ export class VerifyContractProcessor {
             try {
                 // Path to specific contract's schema file.
                 // Example: temp/tempdir1669369179601387/flower-store-contract/schema/query_msg.json
-                data = fs.readFileSync(`${resultVerify.fullContractDir}${process.env.SCHEMA_DIR}${file}`);
+                data = fs.readFileSync(
+                    `${resultVerify.fullContractDir}${process.env.SCHEMA_DIR}${file}`,
+                );
             } catch (error) {
                 this._logger.error('Read schema file failed');
                 this._logger.error(error);
-                this.ioredis.publish(process.env.REDIS_CHANNEL, JSON.stringify({
-                    Code: ErrorMap.E500.Code,
-                    Message: ErrorMap.E500.Message,
-                    CodeId: request.codeId,
-                    Verified: false
-                }));
-                await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
+                this.ioredis.publish(
+                    process.env.REDIS_CHANNEL,
+                    JSON.stringify({
+                        Code: ErrorMap.E500.Code,
+                        Message: ErrorMap.E500.Message,
+                        CodeId: request.codeId,
+                        Verified: false,
+                    }),
+                );
+                await this.redisClient.del(
+                    process.env.ZIP_PREFIX + request.codeId,
+                );
                 this.commonService.removeTempDir(resultVerify.tempDir);
                 return;
             }
@@ -137,10 +172,10 @@ export class VerifyContractProcessor {
             }
         }
         let listQueries = [];
-        // Git URL to specific commit. 
+        // Git URL to specific commit.
         // Example: https://github.com/aura-nw/flower-store-contract/commit/e3905a02e2c555226ddb92bbdc8739aeeaa87364
         let gitUrl = `${request.contractUrl}/commit/${request.commit}`;
-        contracts.map(contract => {
+        contracts.map((contract) => {
             contract.contractVerification = CONTRACT_VERIFICATION.VERIFIED;
             contract.url = gitUrl;
             contract.compilerVersion = request.compilerVersion;
@@ -151,7 +186,7 @@ export class VerifyContractProcessor {
             contract.verifiedAt = new Date();
             contract.mainnetUploadStatus = UPLOAD_STATUS.NOT_REGISTERED;
             listQueries.push(this.smartContractsRepository.update(contract));
-        })
+        });
         try {
             await Promise.all(listQueries);
             this._logger.log('Update contracts successfully');
@@ -162,12 +197,15 @@ export class VerifyContractProcessor {
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
-        this.ioredis.publish(process.env.REDIS_CHANNEL, JSON.stringify({
-            Code: ErrorMap.SUCCESSFUL.Code,
-            Message: 'Verify contract successfully',
-            CodeId: request.codeId,
-            Verified: true
-        }));
+        this.ioredis.publish(
+            process.env.REDIS_CHANNEL,
+            JSON.stringify({
+                Code: ErrorMap.SUCCESSFUL.Code,
+                Message: 'Verify contract successfully',
+                CodeId: request.codeId,
+                Verified: true,
+            }),
+        );
         await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
         this.commonService.removeTempDir(resultVerify.tempDir);
     }
@@ -199,13 +237,15 @@ export class VerifyContractProcessor {
     async compileSourceCode(
         request: MODULE_REQUEST.VerifySourceCodeRequest,
         contract: SmartContracts,
-        contractDir: string
+        contractDir: string,
     ) {
         // Folder name of project. Example: cw-plus
-        let projectFolder = request.contractUrl.substring(request.contractUrl.lastIndexOf('/') + 1);
+        let projectFolder = request.contractUrl.substring(
+            request.contractUrl.lastIndexOf('/') + 1,
+        );
         // Temp dir created to store source code. Example: temp/tempdir1669369179601387
         let tempDir = this.commonService.makeTempFile();
-        // Path to compiled wasm file. 
+        // Path to compiled wasm file.
         // Example: temp/tempdir1669369179601387/cw-plus/artifacts/cw20_base.wasm
         let wasmFileDir = `${tempDir}/${projectFolder}${process.env.ARTIFACTS}${request.wasmFile}`;
 
@@ -213,7 +253,10 @@ export class VerifyContractProcessor {
 
         // Path to clone project. Example: /home/andqk/verify-contract/temp/tempdir1669369179601387/cw-plus
         let resultGetSourceCode: number =
-            this.commonService.cloneAndCheckOutContract(`${pwd}/${tempDir}/${projectFolder}`, request);
+            this.commonService.cloneAndCheckOutContract(
+                `${pwd}/${tempDir}/${projectFolder}`,
+                request,
+            );
         switch (resultGetSourceCode) {
             case 1:
                 return { error: ErrorMap.E006, tempDir };
@@ -223,41 +266,55 @@ export class VerifyContractProcessor {
                 return { error: ErrorMap.E008, tempDir };
         }
 
-        // Full path from temp dir to contract folder. 
+        // Full path from temp dir to contract folder.
         // Example: temp/tempdir1669369179601387/cw-plus/contracts/cw20-base -- Workspace Project
         // Example: temp/tempdir1669369179601387/flower-store-contract -- Single Project
-        let fullContractDir = contractDir !== ''
-            ? `${tempDir}/${projectFolder}/${contractDir}/`
-            : `${tempDir}/${projectFolder}/`;
+        let fullContractDir =
+            contractDir !== ''
+                ? `${tempDir}/${projectFolder}/${contractDir}/`
+                : `${tempDir}/${projectFolder}/`;
         let compiled = await this.commonService.compileSourceCode(
             request.compilerVersion,
             `${pwd}/${tempDir}/${projectFolder}`,
-            contractDir
+            contractDir,
         );
         if (!compiled) return { error: ErrorMap.E001, tempDir };
 
         let codeHash;
         try {
-            codeHash = execSync(`sha256sum ${wasmFileDir}`).toString().split(' ')[0];
+            codeHash = execSync(`sha256sum ${wasmFileDir}`)
+                .toString()
+                .split(' ')[0];
         } catch (error) {
             this._logger.error('Get data hash of compiled wasm file failed');
             this._logger.error(error);
-            return { error: ErrorMap.E500, tempDir };
+            return { error: ErrorMap.E010, tempDir };
         }
         this._logger.log(`Result hash of compiled wasm file: ${codeHash}`);
-        this._logger.log(`Result hash of network wasm file: ${contract.contractHash}`);
+        this._logger.log(
+            `Result hash of network wasm file: ${contract.contractHash}`,
+        );
 
-        if (codeHash !== contract.contractHash) return { error: ErrorMap.E001, tempDir };
+        if (codeHash !== contract.contractHash)
+            return { error: ErrorMap.E001, tempDir };
 
         let zipFile = `${process.env.ZIP_PREFIX}${request.codeId}.zip`;
         try {
-            execSync(`cd ${fullContractDir} && zip -r ${zipFile} ./schema/ ./src/ Cargo.toml Cargo.lock `);
+            execSync(
+                `cd ${fullContractDir} && zip -r ${zipFile} ./schema/ ./src/ Cargo.toml Cargo.lock `,
+            );
         } catch (error) {
             this._logger.error('Create zip file of contract failed');
             this._logger.error(error);
             return { error: ErrorMap.E002 };
         }
 
-        return { tempDir, fullContractDir, zipFile, contractDir, projectFolder };
+        return {
+            tempDir,
+            fullContractDir,
+            zipFile,
+            contractDir,
+            projectFolder,
+        };
     }
 }
