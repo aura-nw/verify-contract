@@ -9,8 +9,14 @@ WORKDIR /usr/src/app
 COPY . .
 
 RUN apk update
-RUN apk add git zip docker openrc
+RUN apk add git zip docker openrc curl
 RUN rc-update add docker boot
+
+RUN curl --proto '=https' --tlsv1.3 https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH /root/.cargo/bin:$PATH
+RUN rustup target list --installed
+RUN rustup target add wasm32-unknown-unknown
+
 RUN npm install --force && npm cache clean --force
 RUN npm run build
 

@@ -39,6 +39,10 @@ export const ErrorMap = {
         Code: 'E009',
         Message: 'Wrong compiler image',
     },
+    E010: {
+        Code: 'E010',
+        Message: 'Incorrect wasm file',
+    },
     E400: {
         Code: 'E400',
         Message: `Bad request`,
