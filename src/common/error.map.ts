@@ -1,47 +1,99 @@
 export const ErrorMap = {
+    // Success Code
     SUCCESSFUL: {
         Code: 'SUCCESSFUL',
         Message: 'Successfully!',
     },
-    E001: {
+    CORRECT_COMPILER_IMAGE: {
+        Code: 'S001',
+        Message: 'Correct compiler image.',
+    },
+    CODE_ID_VALID: {
+        Code: 'S002',
+        Message: 'Code ID valid.',
+    },
+    CODE_ID_SESSION_VALID: {
+        Code: 'S003',
+        Message: 'Code ID session valid.',
+    },
+    GET_DATA_HASH_SUCCESSFUL: {
+        Code: 'S004',
+        Message: 'Get data hash successful.',
+    },
+    GET_SOURCE_CODE_SUCCESSFUL: {
+        Code: 'S005',
+        Message: 'Get source code successful.',
+    },
+    COMPILE_SOURCE_CODE_SUCCESSFUL: {
+        Code: 'S008',
+        Message: 'Source code compiled successful.',
+    },
+    DATA_HASH_MATCH: {
+        Code: 'S009',
+        Message: 'Data hash match..',
+    },
+    VERIFY_SUCCESSFUL: {
+        Code: 'S011',
+        Message: 'Verify Code ID successful.',
+    },
+
+    // Error Code
+    WRONG_COMPILER_IMAGE: {
         Code: 'E001',
-        Message: 'Smart contract source code or compiler version is incorrect',
+        Message: 'Wrong compiler image.',
     },
-    E002: {
+    CODE_ID_NOT_FOUND: {
         Code: 'E002',
-        Message: 'Error zip contract source code',
+        Message: 'Code ID not found.',
     },
-    E003: {
+    CODE_ID_BEING_VERIFIED: {
         Code: 'E003',
-        Message: 'Contract not found',
+        Message: 'Code ID is currently being verified.',
     },
-    E004: {
+    GET_DATA_HASH_FAIL: {
         Code: 'E004',
-        Message: 'The code id is already being verified',
+        Message: 'Cannot get data hash of Code ID.',
     },
-    E005: {
+    GET_SOURCE_CODE_FAIL: {
         Code: 'E005',
-        Message: 'Cannot get data hash of code id',
+        Message:
+            'Cannot find github repository of this contract. Maybe your project is Private.',
     },
-    E006: {
+    COMMIT_NOT_FOUND: {
         Code: 'E006',
-        Message: 'Cannot find github repository of this contract',
+        Message: 'Commit not found.',
     },
-    E007: {
+    MISSING_CARGO_LOCK: {
         Code: 'E007',
-        Message: 'Commit not found',
+        Message: 'Source code is missing Cargo.lock file.',
     },
-    E008: {
+    COMPILE_SOURCE_CODE_FAIL: {
         Code: 'E008',
-        Message: 'Missing Cargo.lock file',
+        Message: 'Smart contract source code or compiler version is incorrect.',
     },
-    E009: {
+    WRONG_WASM_FILE: {
         Code: 'E009',
-        Message: 'Wrong compiler image',
+        Message: 'Incorrect wasm file.',
     },
-    E010: {
+    DATA_HASH_MISMATCH: {
         Code: 'E010',
-        Message: 'Incorrect wasm file',
+        Message: 'Data hash mismatch.',
+    },
+    INTERNAL_ERROR: {
+        Code: 'E011',
+        Message: 'Internal server error.',
+    },
+    ZIP_FAIL: {
+        Code: 'E012',
+        Message: 'Error zip contract source code.',
+    },
+    CODE_ID_ALREADY_VERIFIED: {
+        Code: 'E013',
+        Message: 'Code ID already verified.',
+    },
+    UPDATE_ENTITY_FAIL: {
+        Code: 'E014',
+        Message: 'Update contract entity failed.',
     },
     E400: {
         Code: 'E400',
