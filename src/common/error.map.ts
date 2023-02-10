@@ -25,15 +25,15 @@ export const ErrorMap = {
         Message: 'Get source code successful.',
     },
     COMPILE_SOURCE_CODE_SUCCESSFUL: {
-        Code: 'S008',
+        Code: 'S006',
         Message: 'Source code compiled successful.',
     },
     DATA_HASH_MATCH: {
-        Code: 'S009',
+        Code: 'S007',
         Message: 'Data hash match..',
     },
     VERIFY_SUCCESSFUL: {
-        Code: 'S011',
+        Code: 'S008',
         Message: 'Verify Code ID successful.',
     },
 
@@ -55,44 +55,44 @@ export const ErrorMap = {
         Message: 'Cannot get data hash of Code ID.',
     },
     GET_SOURCE_CODE_FAIL: {
-        Code: 'E005',
+        Code: 'E005A',
         Message:
             'Cannot find github repository of this contract. Maybe your project is Private.',
     },
     COMMIT_NOT_FOUND: {
-        Code: 'E006',
+        Code: 'E005B',
         Message: 'Commit not found.',
     },
     MISSING_CARGO_LOCK: {
-        Code: 'E007',
+        Code: 'E005C',
         Message: 'Source code is missing Cargo.lock file.',
     },
     COMPILE_SOURCE_CODE_FAIL: {
-        Code: 'E008',
+        Code: 'E006',
         Message: 'Smart contract source code or compiler version is incorrect.',
     },
     WRONG_WASM_FILE: {
-        Code: 'E009',
+        Code: 'E007A',
         Message: 'Incorrect wasm file.',
     },
     DATA_HASH_MISMATCH: {
-        Code: 'E010',
+        Code: 'E007B',
         Message: 'Data hash mismatch.',
     },
     INTERNAL_ERROR: {
-        Code: 'E011',
+        Code: 'E008',
         Message: 'Internal server error.',
     },
     ZIP_FAIL: {
-        Code: 'E012',
+        Code: 'E009',
         Message: 'Error zip contract source code.',
     },
     CODE_ID_ALREADY_VERIFIED: {
-        Code: 'E013',
+        Code: 'E010',
         Message: 'Code ID already verified.',
     },
     UPDATE_ENTITY_FAIL: {
-        Code: 'E014',
+        Code: 'E011',
         Message: 'Update contract entity failed.',
     },
     E400: {
