@@ -2,7 +2,10 @@ import * as axios from 'axios';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { IVerifyContractService } from '../iverify-contract.service';
 import { MODULE_REQUEST, REPOSITORY_INTERFACE } from '../../module.config';
-import { ISmartContractsRepository } from '../../repositories';
+import {
+    ISmartContractsRepository,
+    IVerifyCodeStepRepository,
+} from '../../repositories';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { ResponseDto } from '../../dtos/responses';
@@ -11,14 +14,17 @@ import {
     ErrorMap,
     LCD_QUERY,
     REDIS_VERIFY_STATUS,
+    VERIFY_CODE_RESULT,
+    VERIFY_STEP_CHECK_ID,
 } from '../../common';
-import { SmartContracts } from 'src/entities';
-import { RedisService } from '../../shared/services';
+import { SmartContracts } from '../../../src/entities';
+import { CommonService, RedisService } from '../../shared/services';
 const _ = require('lodash');
 
 @Injectable()
 export class VerifyContractService implements IVerifyContractService {
     private readonly _logger = new Logger(VerifyContractService.name);
+    private commonService = new CommonService();
     private redisClient;
     private lcd;
     private ioredis;
@@ -27,6 +33,8 @@ export class VerifyContractService implements IVerifyContractService {
         private redisService: RedisService,
         @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY)
         private smartContractsRepository: ISmartContractsRepository,
+        @Inject(REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY)
+        private verifyCodeStepRepository: IVerifyCodeStepRepository,
         @InjectQueue('verify-source-code') private readonly syncQueue: Queue,
     ) {
         this._logger.log(
@@ -63,27 +71,14 @@ export class VerifyContractService implements IVerifyContractService {
     ): Promise<ResponseDto> {
         this._logger.log(`Handle request verify ${JSON.stringify(request)}`);
 
-        if (
-            !request.compilerVersion.match(process.env.WORKSPACE_REGEX) &&
-            !request.compilerVersion.match(process.env.RUST_REGEX)
-        )
-            return ResponseDto.response(ErrorMap.WRONG_COMPILER_IMAGE, {
-                request,
-            });
-        // Notify stage `Compiler image format` passed
-        this.ioredis.publish(
-            process.env.REDIS_CHANNEL,
-            JSON.stringify({
-                Code: ErrorMap.CORRECT_COMPILER_IMAGE.Code,
-                Message: ErrorMap.CORRECT_COMPILER_IMAGE.Message,
-                CodeId: request.codeId,
-            }),
+        // Update stage `Code ID valid` status to 'In progress'
+        await this.commonService.updateVerifyStatus(
+            this.verifyCodeStepRepository,
+            request.codeId,
+            VERIFY_STEP_CHECK_ID.CODE_ID_VALID,
+            VERIFY_CODE_RESULT.IN_PROGRESS,
+            null,
         );
-
-        this.redisClient = await this.redisService.getRedisClient(
-            this.redisClient,
-        );
-
         let query = request.codeId
             ? { codeId: request.codeId }
             : { contractAddress: request.contractAddress };
@@ -93,6 +88,21 @@ export class VerifyContractService implements IVerifyContractService {
             this._logger.log(
                 `Contract with code ID ${request.codeId} not found`,
             );
+            // Update stage `Code ID valid` status to 'Fail'
+            await Promise.all([
+                this.commonService.updateVerifyStatus(
+                    this.verifyCodeStepRepository,
+                    request.codeId,
+                    VERIFY_STEP_CHECK_ID.CODE_ID_VALID,
+                    VERIFY_CODE_RESULT.FAIL,
+                    ErrorMap.CODE_ID_NOT_FOUND.Code,
+                ),
+                this.commonService.updateContractVerifyStatus(
+                    this.smartContractsRepository,
+                    request.codeId,
+                    CONTRACT_VERIFICATION.VERIFYFAIL,
+                ),
+            ]);
             return ResponseDto.response(ErrorMap.CODE_ID_NOT_FOUND, {
                 request,
             });
@@ -106,6 +116,80 @@ export class VerifyContractService implements IVerifyContractService {
                 CodeId: request.codeId,
             }),
         );
+        await Promise.all([
+            // Update stage `Code ID valid` status to 'Success'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.CODE_ID_VALID,
+                VERIFY_CODE_RESULT.SUCCESS,
+                ErrorMap.CODE_ID_VALID.Code,
+            ),
+            // Update stage `Compiler image format` status to 'In progress'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.COMPILER_IMAGE_FORMAT,
+                VERIFY_CODE_RESULT.IN_PROGRESS,
+                null,
+            ),
+        ]);
+
+        if (
+            !request.compilerVersion.match(process.env.WORKSPACE_REGEX) &&
+            !request.compilerVersion.match(process.env.RUST_REGEX)
+        ) {
+            // Update stage `Compiler image format` status to 'Fail'
+            await Promise.all([
+                this.commonService.updateVerifyStatus(
+                    this.verifyCodeStepRepository,
+                    request.codeId,
+                    VERIFY_STEP_CHECK_ID.COMPILER_IMAGE_FORMAT,
+                    VERIFY_CODE_RESULT.FAIL,
+                    ErrorMap.WRONG_COMPILER_IMAGE.Code,
+                ),
+                this.commonService.updateContractVerifyStatus(
+                    this.smartContractsRepository,
+                    request.codeId,
+                    CONTRACT_VERIFICATION.VERIFYFAIL,
+                ),
+            ]);
+            return ResponseDto.response(ErrorMap.WRONG_COMPILER_IMAGE, {
+                request,
+            });
+        }
+        // Notify stage `Compiler image format` passed
+        this.ioredis.publish(
+            process.env.REDIS_CHANNEL,
+            JSON.stringify({
+                Code: ErrorMap.CORRECT_COMPILER_IMAGE.Code,
+                Message: ErrorMap.CORRECT_COMPILER_IMAGE.Message,
+                CodeId: request.codeId,
+            }),
+        );
+        await Promise.all([
+            // Update stage `Compiler image format` status to 'Success'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.COMPILER_IMAGE_FORMAT,
+                VERIFY_CODE_RESULT.SUCCESS,
+                ErrorMap.CORRECT_COMPILER_IMAGE.Code,
+            ),
+            // Update stage `Code ID verification session valid` status to 'In progress'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.CODE_ID_SESSION_VALID,
+                VERIFY_CODE_RESULT.IN_PROGRESS,
+                null,
+            ),
+        ]);
+
+        this.redisClient = await this.redisService.getRedisClient(
+            this.redisClient,
+        );
+
         if (
             contracts[0].contractVerification === CONTRACT_VERIFICATION.VERIFIED
         )
@@ -124,6 +208,21 @@ export class VerifyContractService implements IVerifyContractService {
             this._logger.log(
                 `Code ID ${request.codeId} is currently being verified`,
             );
+            // Update stage `Code ID verification session valid` status to 'Fail'
+            await Promise.all([
+                this.commonService.updateVerifyStatus(
+                    this.verifyCodeStepRepository,
+                    request.codeId,
+                    VERIFY_STEP_CHECK_ID.CODE_ID_SESSION_VALID,
+                    VERIFY_CODE_RESULT.FAIL,
+                    ErrorMap.CODE_ID_BEING_VERIFIED.Code,
+                ),
+                this.commonService.updateContractVerifyStatus(
+                    this.smartContractsRepository,
+                    request.codeId,
+                    CONTRACT_VERIFICATION.VERIFYFAIL,
+                ),
+            ]);
             return ResponseDto.response(ErrorMap.CODE_ID_BEING_VERIFIED, {
                 request,
             });
@@ -137,6 +236,24 @@ export class VerifyContractService implements IVerifyContractService {
                 CodeId: request.codeId,
             }),
         );
+        await Promise.all([
+            // Update stage `Code ID verification session valid` status to 'Success'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.CODE_ID_SESSION_VALID,
+                VERIFY_CODE_RESULT.SUCCESS,
+                ErrorMap.CODE_ID_SESSION_VALID.Code,
+            ),
+            // Update stage `Get Code ID data hash` status to 'In progress'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
+                VERIFY_CODE_RESULT.IN_PROGRESS,
+                null,
+            ),
+        ]);
 
         // Set code id and contract address to redis to prevent duplicate requests
         await this.redisClient.set(
@@ -150,6 +267,21 @@ export class VerifyContractService implements IVerifyContractService {
                 await this.redisClient.del(
                     process.env.ZIP_PREFIX + request.codeId,
                 );
+                // Update stage `Get Code ID data hash` status to 'Fail'
+                await Promise.all([
+                    this.commonService.updateVerifyStatus(
+                        this.verifyCodeStepRepository,
+                        request.codeId,
+                        VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
+                        VERIFY_CODE_RESULT.FAIL,
+                        ErrorMap.GET_DATA_HASH_FAIL.Code,
+                    ),
+                    this.commonService.updateContractVerifyStatus(
+                        this.smartContractsRepository,
+                        request.codeId,
+                        CONTRACT_VERIFICATION.VERIFYFAIL,
+                    ),
+                ]);
                 return ResponseDto.response(ErrorMap.GET_DATA_HASH_FAIL, {
                     request,
                 });
@@ -167,6 +299,24 @@ export class VerifyContractService implements IVerifyContractService {
                 CodeId: request.codeId,
             }),
         );
+        await Promise.all([
+            // Update stage `Get Code ID data hash` status to 'Success'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
+                VERIFY_CODE_RESULT.SUCCESS,
+                ErrorMap.GET_DATA_HASH_SUCCESSFUL.Code,
+            ),
+            // Update stage ``Get source code`` status to 'In progress'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.GET_SOURCE_CODE,
+                VERIFY_CODE_RESULT.IN_PROGRESS,
+                null,
+            ),
+        ]);
 
         this.syncQueue.add(
             'compile-wasm',

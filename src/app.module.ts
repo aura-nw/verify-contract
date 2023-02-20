@@ -13,9 +13,15 @@ import { VerifyContractController } from './controllers/verify-contract.controll
 import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
 import { VerifyContractProcessor } from './processors/verify-contract.processor';
-import { SmartContractsRepository } from './repositories/impls';
+import {
+    SmartContractsRepository,
+    VerifyCodeStepRepository,
+    VerifyItemCheckRepository,
+} from './repositories/impls';
 const entities = [
-    ENTITIES_CONFIG.SMART_CONTRACTS
+    ENTITIES_CONFIG.SMART_CONTRACTS,
+    ENTITIES_CONFIG.VERIFY_CODE_STEP,
+    ENTITIES_CONFIG.VERIFY_ITEM_CHECK,
 ];
 const controllers = [VerifyContractController];
 const processors = [VerifyContractProcessor];
@@ -37,24 +43,21 @@ const processors = [VerifyContractProcessor];
                 host: process.env.REDIS_HOST,
                 port: parseInt(process.env.REDIS_PORT, 10),
                 username: process.env.REDIS_USERNAME,
-                db: parseInt(process.env.REDIS_DB, 10)
+                db: parseInt(process.env.REDIS_DB, 10),
             },
             prefix: 'verify-contract',
             defaultJobOptions: {
                 removeOnComplete: true,
-                attempts: 3
-            }
+                attempts: 3,
+            },
         }),
         BullModule.registerQueue({
-            name: 'verify-source-code'
+            name: 'verify-source-code',
         }),
         RedisService,
-        CommonService
+        CommonService,
     ],
-    exports: [
-        BullModule,
-        ...processors,
-    ],
+    exports: [BullModule, ...processors],
     controllers: [...controllers],
     providers: [
         // services
@@ -69,8 +72,16 @@ const processors = [VerifyContractProcessor];
             provide: REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY,
             useClass: SmartContractsRepository,
         },
+        {
+            provide: REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY,
+            useClass: VerifyCodeStepRepository,
+        },
+        {
+            provide: REPOSITORY_INTERFACE.IVERIFY_ITEM_CHECK_REPOSITORY,
+            useClass: VerifyItemCheckRepository,
+        },
         // processors
         ...processors,
     ],
 })
-export class AppModule { }
+export class AppModule {}

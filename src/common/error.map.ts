@@ -4,13 +4,13 @@ export const ErrorMap = {
         Code: 'SUCCESSFUL',
         Message: 'Successfully!',
     },
-    CORRECT_COMPILER_IMAGE: {
-        Code: 'S001',
-        Message: 'Correct compiler image.',
-    },
     CODE_ID_VALID: {
-        Code: 'S002',
+        Code: 'S001',
         Message: 'Code ID valid.',
+    },
+    CORRECT_COMPILER_IMAGE: {
+        Code: 'S002',
+        Message: 'Correct compiler image.',
     },
     CODE_ID_SESSION_VALID: {
         Code: 'S003',
@@ -38,13 +38,13 @@ export const ErrorMap = {
     },
 
     // Error Code
-    WRONG_COMPILER_IMAGE: {
-        Code: 'E001',
-        Message: 'Wrong compiler image.',
-    },
     CODE_ID_NOT_FOUND: {
-        Code: 'E002',
+        Code: 'E001',
         Message: 'Code ID not found.',
+    },
+    WRONG_COMPILER_IMAGE: {
+        Code: 'E002',
+        Message: 'Wrong compiler image.',
     },
     CODE_ID_BEING_VERIFIED: {
         Code: 'E003',
