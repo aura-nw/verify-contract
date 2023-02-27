@@ -13,9 +13,14 @@ import {
     ErrorMap,
     SCHEMA_FILE,
     UPLOAD_STATUS,
+    VERIFY_CODE_RESULT,
+    VERIFY_STEP_CHECK_ID,
 } from '../common';
 import { MODULE_REQUEST, REPOSITORY_INTERFACE } from '../module.config';
-import { ISmartContractsRepository } from '../repositories';
+import {
+    ISmartContractsRepository,
+    IVerifyCodeStepRepository,
+} from '../repositories';
 import { SmartContracts } from '../entities';
 import { execSync } from 'child_process';
 import { CommonService, RedisService } from '../shared/services';
@@ -32,6 +37,8 @@ export class VerifyContractProcessor {
     constructor(
         @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY)
         private smartContractsRepository: ISmartContractsRepository,
+        @Inject(REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY)
+        private verifyCodeStepRepository: IVerifyCodeStepRepository,
     ) {
         this._logger.log(
             '============== Constructor Verify Contract Processor Service ==============',
@@ -68,6 +75,7 @@ export class VerifyContractProcessor {
         if (resultVerify.error) {
             this._logger.error('Verify contract failed');
             this._logger.error(resultVerify.error);
+            // Notify stage `Compile source code` / `Get source code` / `Compare data hash` / `Internal process` failed
             this.ioredis.publish(
                 process.env.REDIS_CHANNEL,
                 JSON.stringify({
@@ -77,27 +85,59 @@ export class VerifyContractProcessor {
                     Verified: false,
                 }),
             );
-            await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
-            // this.commonService.removeTempDir(resultVerify.tempDir);
+            await Promise.all([
+                this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+                // Update stage `Compile source code` / `Get source code` / `Compare data hash` / `Internal process` status to 'Fail'
+                this.commonService.updateVerifyStatus(
+                    this.verifyCodeStepRepository,
+                    request.codeId,
+                    resultVerify.verifyItemCheckId,
+                    VERIFY_CODE_RESULT.FAIL,
+                    resultVerify.error.Code,
+                ),
+                this.commonService.updateContractVerifyStatus(
+                    this.smartContractsRepository,
+                    request.codeId,
+                    CONTRACT_VERIFICATION.VERIFYFAIL,
+                ),
+            ]);
+            this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
         this._logger.log('Verify contract successfully');
+
         // Path to contract's zip file. Example: temp/tempdir1669369179601387/flower-store-contract/code_id_1.zip
         let s3Location = await this.commonService.uploadContractToS3(
             `${resultVerify.fullContractDir}${resultVerify.zipFile}`,
             resultVerify.zipFile,
         );
         if (s3Location === '') {
+            // Notify stage `Internal process` failed
             this.ioredis.publish(
                 process.env.REDIS_CHANNEL,
                 JSON.stringify({
-                    Code: ErrorMap.E500.Code,
-                    Message: ErrorMap.E500.Message,
+                    Code: ErrorMap.INTERNAL_ERROR.Code,
+                    Message: ErrorMap.INTERNAL_ERROR.Message,
                     CodeId: request.codeId,
                     Verified: false,
                 }),
             );
-            await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
+            await Promise.all([
+                this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+                // Update stage `Internal process` status to 'Fail'
+                this.commonService.updateVerifyStatus(
+                    this.verifyCodeStepRepository,
+                    request.codeId,
+                    VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                    VERIFY_CODE_RESULT.FAIL,
+                    ErrorMap.INTERNAL_ERROR.Code,
+                ),
+                this.commonService.updateContractVerifyStatus(
+                    this.smartContractsRepository,
+                    request.codeId,
+                    CONTRACT_VERIFICATION.VERIFYFAIL,
+                ),
+            ]);
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
@@ -111,16 +151,32 @@ export class VerifyContractProcessor {
         } catch (error) {
             this._logger.error('Read schema dir failed');
             this._logger.error(error);
+            // Notify stage `Internal process` failed
             this.ioredis.publish(
                 process.env.REDIS_CHANNEL,
                 JSON.stringify({
-                    Code: ErrorMap.E500.Code,
-                    Message: ErrorMap.E500.Message,
+                    Code: ErrorMap.INTERNAL_ERROR.Code,
+                    Message: ErrorMap.INTERNAL_ERROR.Message,
                     CodeId: request.codeId,
                     Verified: false,
                 }),
             );
-            await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
+            await Promise.all([
+                this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+                // Update stage `Internal process` status to 'Fail'
+                this.commonService.updateVerifyStatus(
+                    this.verifyCodeStepRepository,
+                    request.codeId,
+                    VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                    VERIFY_CODE_RESULT.FAIL,
+                    ErrorMap.INTERNAL_ERROR.Code,
+                ),
+                this.commonService.updateContractVerifyStatus(
+                    this.smartContractsRepository,
+                    request.codeId,
+                    CONTRACT_VERIFICATION.VERIFYFAIL,
+                ),
+            ]);
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
@@ -135,18 +191,34 @@ export class VerifyContractProcessor {
             } catch (error) {
                 this._logger.error('Read schema file failed');
                 this._logger.error(error);
+                // Notify stage `Internal process` failed
                 this.ioredis.publish(
                     process.env.REDIS_CHANNEL,
                     JSON.stringify({
-                        Code: ErrorMap.E500.Code,
-                        Message: ErrorMap.E500.Message,
+                        Code: ErrorMap.INTERNAL_ERROR.Code,
+                        Message: ErrorMap.INTERNAL_ERROR.Message,
                         CodeId: request.codeId,
                         Verified: false,
                     }),
                 );
-                await this.redisClient.del(
-                    process.env.ZIP_PREFIX + request.codeId,
-                );
+                await Promise.all([
+                    this.redisClient.del(
+                        process.env.ZIP_PREFIX + request.codeId,
+                    ),
+                    // Update stage `Internal process` status to 'Fail'
+                    this.commonService.updateVerifyStatus(
+                        this.verifyCodeStepRepository,
+                        request.codeId,
+                        VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                        VERIFY_CODE_RESULT.FAIL,
+                        ErrorMap.INTERNAL_ERROR.Code,
+                    ),
+                    this.commonService.updateContractVerifyStatus(
+                        this.smartContractsRepository,
+                        request.codeId,
+                        CONTRACT_VERIFICATION.VERIFYFAIL,
+                    ),
+                ]);
                 this.commonService.removeTempDir(resultVerify.tempDir);
                 return;
             }
@@ -193,20 +265,55 @@ export class VerifyContractProcessor {
         } catch (error) {
             this._logger.error('Update contracts failed');
             this._logger.error(error);
-            await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
+            // Notify stage `Internal process` failed
+            this.ioredis.publish(
+                process.env.REDIS_CHANNEL,
+                JSON.stringify({
+                    Code: ErrorMap.INTERNAL_ERROR.Code,
+                    Message: ErrorMap.INTERNAL_ERROR.Message,
+                    CodeId: request.codeId,
+                    Verified: false,
+                }),
+            );
+            await Promise.all([
+                this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+                // Update stage `Internal process` status to 'Fail'
+                this.commonService.updateVerifyStatus(
+                    this.verifyCodeStepRepository,
+                    request.codeId,
+                    VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                    VERIFY_CODE_RESULT.FAIL,
+                    ErrorMap.INTERNAL_ERROR.Code,
+                ),
+                this.commonService.updateContractVerifyStatus(
+                    this.smartContractsRepository,
+                    request.codeId,
+                    CONTRACT_VERIFICATION.VERIFYFAIL,
+                ),
+            ]);
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
         this.ioredis.publish(
             process.env.REDIS_CHANNEL,
             JSON.stringify({
-                Code: ErrorMap.SUCCESSFUL.Code,
-                Message: 'Verify contract successfully',
+                Code: ErrorMap.VERIFY_SUCCESSFUL.Code,
+                Message: ErrorMap.VERIFY_SUCCESSFUL.Message,
                 CodeId: request.codeId,
                 Verified: true,
             }),
         );
-        await this.redisClient.del(process.env.ZIP_PREFIX + request.codeId);
+        await Promise.all([
+            this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+            // Update stage `Internal process` status to 'Success'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                VERIFY_CODE_RESULT.SUCCESS,
+                ErrorMap.VERIFY_SUCCESSFUL.Code,
+            ),
+        ]);
         this.commonService.removeTempDir(resultVerify.tempDir);
     }
 
@@ -259,12 +366,51 @@ export class VerifyContractProcessor {
             );
         switch (resultGetSourceCode) {
             case 1:
-                return { error: ErrorMap.E006, tempDir };
+                return {
+                    error: ErrorMap.GET_SOURCE_CODE_FAIL,
+                    tempDir,
+                    verifyItemCheckId: VERIFY_STEP_CHECK_ID.GET_SOURCE_CODE,
+                };
             case 2:
-                return { error: ErrorMap.E007, tempDir };
+                return {
+                    error: ErrorMap.COMMIT_NOT_FOUND,
+                    tempDir,
+                    verifyItemCheckId: VERIFY_STEP_CHECK_ID.GET_SOURCE_CODE,
+                };
             case 3:
-                return { error: ErrorMap.E008, tempDir };
+                return {
+                    error: ErrorMap.MISSING_CARGO_LOCK,
+                    tempDir,
+                    verifyItemCheckId: VERIFY_STEP_CHECK_ID.GET_SOURCE_CODE,
+                };
         }
+        // Notify stage `Get source code` passed
+        this.ioredis.publish(
+            process.env.REDIS_CHANNEL,
+            JSON.stringify({
+                Code: ErrorMap.GET_SOURCE_CODE_SUCCESSFUL.Code,
+                Message: ErrorMap.GET_SOURCE_CODE_SUCCESSFUL.Message,
+                CodeId: request.codeId,
+            }),
+        );
+        await Promise.all([
+            // Update stage `Get source code` status to 'Success'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.GET_SOURCE_CODE,
+                VERIFY_CODE_RESULT.SUCCESS,
+                ErrorMap.GET_SOURCE_CODE_SUCCESSFUL.Code,
+            ),
+            // Update stage `Compile source code` status to 'In progress'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.COMPILE_SOURCE_CODE,
+                VERIFY_CODE_RESULT.IN_PROGRESS,
+                null,
+            ),
+        ]);
 
         // Full path from temp dir to contract folder.
         // Example: temp/tempdir1669369179601387/cw-plus/contracts/cw20-base -- Workspace Project
@@ -278,7 +424,39 @@ export class VerifyContractProcessor {
             `${pwd}/${tempDir}/${projectFolder}`,
             contractDir,
         );
-        if (!compiled) return { error: ErrorMap.E001, tempDir };
+        if (!compiled)
+            return {
+                error: ErrorMap.COMPILE_SOURCE_CODE_FAIL,
+                tempDir,
+                verifyItemCheckId: VERIFY_STEP_CHECK_ID.COMPILE_SOURCE_CODE,
+            };
+        // Notify stage `Compile source code` passed
+        this.ioredis.publish(
+            process.env.REDIS_CHANNEL,
+            JSON.stringify({
+                Code: ErrorMap.COMPILE_SOURCE_CODE_SUCCESSFUL.Code,
+                Message: ErrorMap.COMPILE_SOURCE_CODE_SUCCESSFUL.Message,
+                CodeId: request.codeId,
+            }),
+        );
+        await Promise.all([
+            // Update stage `Compile source code` status to 'Success'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.COMPILE_SOURCE_CODE,
+                VERIFY_CODE_RESULT.SUCCESS,
+                ErrorMap.COMPILE_SOURCE_CODE_SUCCESSFUL.Code,
+            ),
+            // Update stage `Compare data hash` status to 'In progress'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
+                VERIFY_CODE_RESULT.IN_PROGRESS,
+                null,
+            ),
+        ]);
 
         let codeHash;
         try {
@@ -288,7 +466,11 @@ export class VerifyContractProcessor {
         } catch (error) {
             this._logger.error('Get data hash of compiled wasm file failed');
             this._logger.error(error);
-            return { error: ErrorMap.E010, tempDir };
+            return {
+                error: ErrorMap.WRONG_WASM_FILE,
+                tempDir,
+                verifyItemCheckId: VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
+            };
         }
         this._logger.log(`Result hash of compiled wasm file: ${codeHash}`);
         this._logger.log(
@@ -296,7 +478,38 @@ export class VerifyContractProcessor {
         );
 
         if (codeHash !== contract.contractHash)
-            return { error: ErrorMap.E001, tempDir };
+            return {
+                error: ErrorMap.DATA_HASH_MISMATCH,
+                tempDir,
+                verifyItemCheckId: VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
+            };
+        // Notify stage `Compare data hash` passed
+        this.ioredis.publish(
+            process.env.REDIS_CHANNEL,
+            JSON.stringify({
+                Code: ErrorMap.DATA_HASH_MATCH.Code,
+                Message: ErrorMap.DATA_HASH_MATCH.Message,
+                CodeId: request.codeId,
+            }),
+        );
+        await Promise.all([
+            // Update stage `Compare data hash` status to 'Success'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
+                VERIFY_CODE_RESULT.SUCCESS,
+                ErrorMap.DATA_HASH_MATCH.Code,
+            ),
+            // Update stage `Internal process` status to 'In progress'
+            this.commonService.updateVerifyStatus(
+                this.verifyCodeStepRepository,
+                request.codeId,
+                VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                VERIFY_CODE_RESULT.IN_PROGRESS,
+                null,
+            ),
+        ]);
 
         let zipFile = `${process.env.ZIP_PREFIX}${request.codeId}.zip`;
         try {
@@ -306,7 +519,11 @@ export class VerifyContractProcessor {
         } catch (error) {
             this._logger.error('Create zip file of contract failed');
             this._logger.error(error);
-            return { error: ErrorMap.E002 };
+            return {
+                error: ErrorMap.INTERNAL_ERROR,
+                tempDir,
+                verifyItemCheckId: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+            };
         }
 
         return {
