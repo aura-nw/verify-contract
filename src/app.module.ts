@@ -14,12 +14,14 @@ import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
 import { VerifyContractProcessor } from './processors/verify-contract.processor';
 import {
+    SmartContractCodeRepository,
     SmartContractsRepository,
     VerifyCodeStepRepository,
     VerifyItemCheckRepository,
 } from './repositories/impls';
 const entities = [
     ENTITIES_CONFIG.SMART_CONTRACTS,
+    ENTITIES_CONFIG.SMART_CONTRACT_CODE,
     ENTITIES_CONFIG.VERIFY_CODE_STEP,
     ENTITIES_CONFIG.VERIFY_ITEM_CHECK,
 ];
@@ -71,6 +73,10 @@ const processors = [VerifyContractProcessor];
         {
             provide: REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY,
             useClass: SmartContractsRepository,
+        },
+        {
+            provide: REPOSITORY_INTERFACE.ISMART_CONTRACT_CODE_REPOSITORY,
+            useClass: SmartContractCodeRepository,
         },
         {
             provide: REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY,

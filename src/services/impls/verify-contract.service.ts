@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { IVerifyContractService } from '../iverify-contract.service';
 import { MODULE_REQUEST, REPOSITORY_INTERFACE } from '../../module.config';
 import {
+    ISmartContractCodeRepository,
     ISmartContractsRepository,
     IVerifyCodeStepRepository,
 } from '../../repositories';
@@ -17,7 +18,7 @@ import {
     VERIFY_CODE_RESULT,
     VERIFY_STEP_CHECK_ID,
 } from '../../common';
-import { SmartContracts } from '../../../src/entities';
+import { SmartContractCode, SmartContracts } from '../../../src/entities';
 import { CommonService, RedisService } from '../../shared/services';
 const _ = require('lodash');
 
@@ -33,6 +34,8 @@ export class VerifyContractService implements IVerifyContractService {
         private redisService: RedisService,
         @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY)
         private smartContractsRepository: ISmartContractsRepository,
+        @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACT_CODE_REPOSITORY)
+        private smartContractCodeRepository: ISmartContractCodeRepository,
         @Inject(REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY)
         private verifyCodeStepRepository: IVerifyCodeStepRepository,
         @InjectQueue('verify-source-code') private readonly syncQueue: Queue,
@@ -79,12 +82,18 @@ export class VerifyContractService implements IVerifyContractService {
             VERIFY_CODE_RESULT.IN_PROGRESS,
             null,
         );
-        let query = request.codeId
-            ? { codeId: request.codeId }
-            : { contractAddress: request.contractAddress };
-        let contracts: SmartContracts[] =
-            await this.smartContractsRepository.findByCondition(query);
-        if (contracts.length === 0) {
+        let [contracts, smartContractCodes]: [
+            SmartContracts[],
+            SmartContractCode[],
+        ] = await Promise.all([
+            this.smartContractsRepository.findByCondition({
+                codeId: request.codeId,
+            }),
+            this.smartContractCodeRepository.findByCondition({
+                codeId: request.codeId,
+            }),
+        ]);
+        if (smartContractCodes.length === 0) {
             this._logger.log(
                 `Contract with code ID ${request.codeId} not found`,
             );
@@ -97,8 +106,9 @@ export class VerifyContractService implements IVerifyContractService {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.CODE_ID_NOT_FOUND.Code,
                 ),
-                this.commonService.updateContractVerifyStatus(
+                this.commonService.updateContractAndCodeIDVerifyStatus(
                     this.smartContractsRepository,
+                    this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
                 ),
@@ -148,8 +158,9 @@ export class VerifyContractService implements IVerifyContractService {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.WRONG_COMPILER_IMAGE.Code,
                 ),
-                this.commonService.updateContractVerifyStatus(
+                this.commonService.updateContractAndCodeIDVerifyStatus(
                     this.smartContractsRepository,
+                    this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
                 ),
@@ -191,16 +202,13 @@ export class VerifyContractService implements IVerifyContractService {
         );
 
         if (
-            contracts[0].contractVerification === CONTRACT_VERIFICATION.VERIFIED
+            smartContractCodes[0].contractVerification ===
+            CONTRACT_VERIFICATION.VERIFIED
         )
             return ResponseDto.response(ErrorMap.CODE_ID_ALREADY_VERIFIED, {
                 request,
             });
 
-        request.codeId = contracts[0].codeId;
-        contracts = await this.smartContractsRepository.findByCondition({
-            codeId: request.codeId,
-        });
         const keyCodeId = await this.redisClient.get(
             process.env.ZIP_PREFIX + request.codeId,
         );
@@ -217,8 +225,9 @@ export class VerifyContractService implements IVerifyContractService {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.CODE_ID_BEING_VERIFIED.Code,
                 ),
-                this.commonService.updateContractVerifyStatus(
+                this.commonService.updateContractAndCodeIDVerifyStatus(
                     this.smartContractsRepository,
+                    this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
                 ),
@@ -261,7 +270,7 @@ export class VerifyContractService implements IVerifyContractService {
             REDIS_VERIFY_STATUS.VERIFYING,
         );
 
-        if (contracts[0].contractHash === '') {
+        if (smartContractCodes[0].contractHash === '') {
             let dataHash = await this.getDataHash({ codeId: request.codeId });
             if (dataHash.Code === ErrorMap.E500.Code) {
                 await this.redisClient.del(
@@ -276,8 +285,9 @@ export class VerifyContractService implements IVerifyContractService {
                         VERIFY_CODE_RESULT.FAIL,
                         ErrorMap.GET_DATA_HASH_FAIL.Code,
                     ),
-                    this.commonService.updateContractVerifyStatus(
+                    this.commonService.updateContractAndCodeIDVerifyStatus(
                         this.smartContractsRepository,
+                        this.smartContractCodeRepository,
                         request.codeId,
                         CONTRACT_VERIFICATION.VERIFYFAIL,
                     ),
@@ -323,6 +333,7 @@ export class VerifyContractService implements IVerifyContractService {
             {
                 request,
                 contracts,
+                contractCode: smartContractCodes[0],
             } as MODULE_REQUEST.VerifyContractJobRequest,
             {
                 removeOnComplete: true,

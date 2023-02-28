@@ -18,10 +18,11 @@ import {
 } from '../common';
 import { MODULE_REQUEST, REPOSITORY_INTERFACE } from '../module.config';
 import {
+    ISmartContractCodeRepository,
     ISmartContractsRepository,
     IVerifyCodeStepRepository,
 } from '../repositories';
-import { SmartContracts } from '../entities';
+import { SmartContractCode, SmartContracts } from '../entities';
 import { execSync } from 'child_process';
 import { CommonService, RedisService } from '../shared/services';
 import fs from 'fs';
@@ -37,6 +38,8 @@ export class VerifyContractProcessor {
     constructor(
         @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY)
         private smartContractsRepository: ISmartContractsRepository,
+        @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACT_CODE_REPOSITORY)
+        private smartContractCodeRepository: ISmartContractCodeRepository,
         @Inject(REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY)
         private verifyCodeStepRepository: IVerifyCodeStepRepository,
     ) {
@@ -55,8 +58,11 @@ export class VerifyContractProcessor {
         this.redisClient = await this.redisService.getRedisClient(
             this.redisClient,
         );
-        let { request, contracts }: MODULE_REQUEST.VerifyContractJobRequest =
-            job.data;
+        let {
+            request,
+            contracts,
+            contractCode,
+        }: MODULE_REQUEST.VerifyContractJobRequest = job.data;
         let contractDir, contractFolder;
         if (request.compilerVersion.match(process.env.WORKSPACE_REGEX)) {
             // Folder name of the contract. Example: cw20-base
@@ -69,7 +75,7 @@ export class VerifyContractProcessor {
 
         let resultVerify = await this.compileSourceCode(
             request,
-            contracts[0],
+            contractCode,
             contractDir,
         );
         if (resultVerify.error) {
@@ -95,8 +101,9 @@ export class VerifyContractProcessor {
                     VERIFY_CODE_RESULT.FAIL,
                     resultVerify.error.Code,
                 ),
-                this.commonService.updateContractVerifyStatus(
+                this.commonService.updateContractAndCodeIDVerifyStatus(
                     this.smartContractsRepository,
+                    this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
                 ),
@@ -132,8 +139,9 @@ export class VerifyContractProcessor {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.INTERNAL_ERROR.Code,
                 ),
-                this.commonService.updateContractVerifyStatus(
+                this.commonService.updateContractAndCodeIDVerifyStatus(
                     this.smartContractsRepository,
+                    this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
                 ),
@@ -141,6 +149,7 @@ export class VerifyContractProcessor {
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
+
         let schemaFiles, instantiateMsg, queryMsg, executeMsg;
         try {
             // Path to contract's schema files.
@@ -171,8 +180,9 @@ export class VerifyContractProcessor {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.INTERNAL_ERROR.Code,
                 ),
-                this.commonService.updateContractVerifyStatus(
+                this.commonService.updateContractAndCodeIDVerifyStatus(
                     this.smartContractsRepository,
+                    this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
                 ),
@@ -180,6 +190,7 @@ export class VerifyContractProcessor {
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
+
         for (let file of schemaFiles) {
             let data;
             try {
@@ -213,8 +224,9 @@ export class VerifyContractProcessor {
                         VERIFY_CODE_RESULT.FAIL,
                         ErrorMap.INTERNAL_ERROR.Code,
                     ),
-                    this.commonService.updateContractVerifyStatus(
+                    this.commonService.updateContractAndCodeIDVerifyStatus(
                         this.smartContractsRepository,
+                        this.smartContractCodeRepository,
                         request.codeId,
                         CONTRACT_VERIFICATION.VERIFYFAIL,
                     ),
@@ -243,6 +255,7 @@ export class VerifyContractProcessor {
                     break;
             }
         }
+
         let listQueries = [];
         // Git URL to specific commit.
         // Example: https://github.com/aura-nw/flower-store-contract/commit/e3905a02e2c555226ddb92bbdc8739aeeaa87364
@@ -259,6 +272,16 @@ export class VerifyContractProcessor {
             contract.mainnetUploadStatus = UPLOAD_STATUS.NOT_REGISTERED;
             listQueries.push(this.smartContractsRepository.update(contract));
         });
+        contractCode.contractVerification = CONTRACT_VERIFICATION.VERIFIED;
+        contractCode.url = gitUrl;
+        contractCode.compilerVersion = request.compilerVersion;
+        contractCode.instantiateMsgSchema = instantiateMsg;
+        contractCode.queryMsgSchema = queryMsg;
+        contractCode.executeMsgSchema = executeMsg;
+        contractCode.s3Location = s3Location;
+        contractCode.verifiedAt = new Date();
+        listQueries.push(this.smartContractCodeRepository.update(contractCode));
+
         try {
             await Promise.all(listQueries);
             this._logger.log('Update contracts successfully');
@@ -285,8 +308,9 @@ export class VerifyContractProcessor {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.INTERNAL_ERROR.Code,
                 ),
-                this.commonService.updateContractVerifyStatus(
+                this.commonService.updateContractAndCodeIDVerifyStatus(
                     this.smartContractsRepository,
+                    this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
                 ),
@@ -343,7 +367,7 @@ export class VerifyContractProcessor {
 
     async compileSourceCode(
         request: MODULE_REQUEST.VerifySourceCodeRequest,
-        contract: SmartContracts,
+        contractCode: SmartContractCode,
         contractDir: string,
     ) {
         // Folder name of project. Example: cw-plus
@@ -474,10 +498,10 @@ export class VerifyContractProcessor {
         }
         this._logger.log(`Result hash of compiled wasm file: ${codeHash}`);
         this._logger.log(
-            `Result hash of network wasm file: ${contract.contractHash}`,
+            `Result hash of network wasm file: ${contractCode.contractHash}`,
         );
 
-        if (codeHash !== contract.contractHash)
+        if (codeHash !== contractCode.contractHash)
             return {
                 error: ErrorMap.DATA_HASH_MISMATCH,
                 tempDir,

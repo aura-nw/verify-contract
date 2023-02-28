@@ -5,10 +5,16 @@ import {
 } from './dtos/requests';
 import { GetDataHashResponse, ResponseDto } from './dtos/responses';
 import { VerifySourceCodeResponse } from './dtos/responses/verify-source-code.response';
-import { SmartContracts, VerifyCodeStep, VerifyItemCheck } from './entities';
+import {
+    SmartContractCode,
+    SmartContracts,
+    VerifyCodeStep,
+    VerifyItemCheck,
+} from './entities';
 
 export const ENTITIES_CONFIG = {
     SMART_CONTRACTS: SmartContracts,
+    SMART_CONTRACT_CODE: SmartContractCode,
     VERIFY_CODE_STEP: VerifyCodeStep,
     VERIFY_ITEM_CHECK: VerifyItemCheck,
 };
@@ -19,6 +25,7 @@ export const SERVICE_INTERFACE = {
 
 export const REPOSITORY_INTERFACE = {
     ISMART_CONTRACTS_REPOSITORY: 'ISmartContractsRepository',
+    ISMART_CONTRACT_CODE_REPOSITORY: 'ISmartContractCodeRepository',
     IVERIFY_CODE_STEP_REPOSITORY: 'IVerifyCodeStepRepository',
     IVERIFY_ITEM_CHECK_REPOSITORY: 'IVerifyItemCheckRepository',
 };

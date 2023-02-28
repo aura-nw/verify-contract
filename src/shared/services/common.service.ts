@@ -5,10 +5,15 @@ import { execSync } from 'child_process';
 import Docker from 'dockerode';
 import AWS from 'aws-sdk';
 import {
+    ISmartContractCodeRepository,
     ISmartContractsRepository,
     IVerifyCodeStepRepository,
 } from '../../../src/repositories';
-import { SmartContracts, VerifyCodeStep } from '../../../src/entities';
+import {
+    SmartContractCode,
+    SmartContracts,
+    VerifyCodeStep,
+} from '../../../src/entities';
 import { CONTRACT_VERIFICATION, VERIFY_CODE_RESULT } from '../../../src/common';
 
 export class CommonService {
@@ -152,21 +157,36 @@ export class CommonService {
         await verifyCodeStepRepository.update(codeStep);
     }
 
-    async updateContractVerifyStatus(
+    async updateContractAndCodeIDVerifyStatus(
         smartContractsRepository: ISmartContractsRepository,
+        smartContractCodeRepository: ISmartContractCodeRepository,
         codeId: number,
         verifyStatus: CONTRACT_VERIFICATION,
     ) {
-        const contracts: SmartContracts[] =
-            await smartContractsRepository.findByCondition({
+        const [contracts, smartContractCodes]: [
+            SmartContracts[],
+            SmartContractCode[],
+        ] = await Promise.all([
+            smartContractsRepository.findByCondition({
                 codeId,
-            });
+            }),
+            smartContractCodeRepository.findByCondition({
+                codeId,
+            }),
+        ]);
 
         contracts.map(
             (contract: SmartContracts) =>
                 (contract.contractVerification = verifyStatus),
         );
+        smartContractCodes.map(
+            (smartContractCode: SmartContractCode) =>
+                (smartContractCode.contractVerification = verifyStatus),
+        );
 
-        await smartContractsRepository.update(contracts);
+        await Promise.all([
+            smartContractsRepository.update(contracts),
+            smartContractCodeRepository.update(smartContractCodes),
+        ]);
     }
 }
