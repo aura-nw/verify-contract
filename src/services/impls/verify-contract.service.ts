@@ -270,7 +270,10 @@ export class VerifyContractService implements IVerifyContractService {
             REDIS_VERIFY_STATUS.VERIFYING,
         );
 
-        if (smartContractCodes[0].contractHash === '') {
+        if (
+            !smartContractCodes[0].contractHash ||
+            smartContractCodes[0].contractHash === ''
+        ) {
             let dataHash = await this.getDataHash({ codeId: request.codeId });
             if (dataHash.Code === ErrorMap.E500.Code) {
                 await this.redisClient.del(
