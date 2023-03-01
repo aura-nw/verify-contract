@@ -296,8 +296,9 @@ export class VerifyContractService implements IVerifyContractService {
                     request,
                 });
             }
-            contracts.map(
-                (contract) => (contract.contractHash = dataHash.Data.data_hash),
+            smartContractCodes.map(
+                (smartContractCode: SmartContractCode) =>
+                    (smartContractCode.contractHash = dataHash.Data.data_hash),
             );
         }
         // Notify stage `Get Code ID data hash` passed
