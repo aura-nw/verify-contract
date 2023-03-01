@@ -341,9 +341,7 @@ export class VerifyContractService implements IVerifyContractService {
             } as MODULE_REQUEST.VerifyContractJobRequest,
             {
                 removeOnComplete: true,
-                removeOnFail: {
-                    count: 3,
-                },
+                removeOnFail: true,
             },
         );
 

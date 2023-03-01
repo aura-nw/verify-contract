@@ -22,7 +22,7 @@ import {
     ISmartContractsRepository,
     IVerifyCodeStepRepository,
 } from '../repositories';
-import { SmartContractCode, SmartContracts } from '../entities';
+import { SmartContractCode } from '../entities';
 import { execSync } from 'child_process';
 import { CommonService, RedisService } from '../shared/services';
 import fs from 'fs';
@@ -496,9 +496,11 @@ export class VerifyContractProcessor {
                 verifyItemCheckId: VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
             };
         }
-        this._logger.log(`Result hash of compiled wasm file: ${codeHash}`);
         this._logger.log(
-            `Result hash of network wasm file: ${contractCode.contractHash}`,
+            `Result hash of compiled wasm file for Code ID ${contractCode.codeId}: ${codeHash}`,
+        );
+        this._logger.log(
+            `Result hash of network wasm file for Code ID ${contractCode.codeId}: ${contractCode.contractHash}`,
         );
 
         if (codeHash !== contractCode.contractHash)
