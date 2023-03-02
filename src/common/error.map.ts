@@ -69,7 +69,7 @@ export const ErrorMap = {
     },
     COMPILE_SOURCE_CODE_FAIL: {
         Code: 'E006',
-        Message: 'Smart contract source code or compiler version is incorrect.',
+        Message: 'Smart contract source code is incorrect.',
     },
     WRONG_WASM_FILE: {
         Code: 'E007A',
@@ -77,7 +77,8 @@ export const ErrorMap = {
     },
     DATA_HASH_MISMATCH: {
         Code: 'E007B',
-        Message: 'Data hash mismatch.',
+        Message:
+            'Data hash mismatch. Maybe your compiler version or commit is incorrect.',
     },
     INTERNAL_ERROR: {
         Code: 'E008',
