@@ -447,6 +447,7 @@ export class VerifyContractProcessor {
             request.compilerVersion,
             `${pwd}/${tempDir}/${projectFolder}`,
             contractDir,
+            request.wasmFile,
         );
         if (!compiled)
             return {

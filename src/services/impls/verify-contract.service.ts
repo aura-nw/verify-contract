@@ -340,6 +340,7 @@ export class VerifyContractService implements IVerifyContractService {
                 contractCode: smartContractCodes[0],
             } as MODULE_REQUEST.VerifyContractJobRequest,
             {
+                jobId: request.codeId,
                 removeOnComplete: true,
                 removeOnFail: true,
             },
