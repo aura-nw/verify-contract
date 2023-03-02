@@ -70,6 +70,7 @@ export class CommonService {
         compilerImage: string,
         projectFolder: string,
         contractDir: string,
+        wasmFile: string,
     ): Promise<boolean> {
         let docker;
         let optimize = compilerImage.match(process.env.WORKSPACE_REGEX)
@@ -111,6 +112,10 @@ export class CommonService {
             this._logger.error(error);
             return false;
         }
+
+        if (!fs.existsSync(`${projectFolder}/artifacts/${wasmFile}`))
+            return false;
+
         return true;
     }
 

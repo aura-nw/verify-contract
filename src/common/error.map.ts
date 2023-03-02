@@ -69,7 +69,7 @@ export const ErrorMap = {
     },
     COMPILE_SOURCE_CODE_FAIL: {
         Code: 'E006',
-        Message: 'Smart contract source code is incorrect.',
+        Message: 'Smart contract source code or compiler version is incorrect.',
     },
     WRONG_WASM_FILE: {
         Code: 'E007A',

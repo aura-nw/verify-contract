@@ -50,7 +50,10 @@ const processors = [VerifyContractProcessor];
             prefix: 'verify-contract',
             defaultJobOptions: {
                 removeOnComplete: true,
-                attempts: 3,
+                removeOnFail: true,
+            },
+            settings: {
+                lockDuration: 60000,
             },
         }),
         BullModule.registerQueue({
