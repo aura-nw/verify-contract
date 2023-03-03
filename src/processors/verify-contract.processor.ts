@@ -22,7 +22,7 @@ import {
     ISmartContractsRepository,
     IVerifyCodeStepRepository,
 } from '../repositories';
-import { SmartContractCode } from '../entities';
+import { SmartContractCode, VerifyCodeStep } from '../entities';
 import { execSync } from 'child_process';
 import { CommonService, RedisService } from '../shared/services';
 import fs from 'fs';
@@ -339,6 +339,8 @@ export class VerifyContractProcessor {
             ),
         ]);
         this.commonService.removeTempDir(resultVerify.tempDir);
+
+        return {};
     }
 
     @OnQueueActive()
@@ -353,16 +355,31 @@ export class VerifyContractProcessor {
     }
 
     @OnQueueError()
-    onError(job: Job, error: Error) {
+    async onError(job: Job, error: Error) {
         this._logger.error(`Job: ${job}`);
         this._logger.error(`Error job ${job.id} of type ${job.name}`);
         this._logger.error(`Error: ${error}`);
     }
 
     @OnQueueFailed()
-    onFailed(job: Job, error: Error) {
+    async onFailed(job: Job, error: Error) {
         this._logger.error(`Failed job ${job.id} of type ${job.name}`);
         this._logger.error(`Error: ${error}`);
+
+        const verifySteps = await this.verifyCodeStepRepository.findByCondition(
+            {
+                codeId: Number.parseInt(job.id.toString(), 10),
+            },
+        );
+        verifySteps.map((step: VerifyCodeStep) => {
+            if (step.result === VERIFY_CODE_RESULT.IN_PROGRESS)
+                step.result = VERIFY_CODE_RESULT.FAIL;
+        });
+
+        await Promise.all([
+            this.redisClient.del(process.env.ZIP_PREFIX + job.id),
+            this.verifyCodeStepRepository.update(verifySteps),
+        ]);
     }
 
     async compileSourceCode(
