@@ -54,6 +54,8 @@ const processors = [VerifyContractProcessor];
             },
             settings: {
                 lockDuration: 60000,
+                stalledInterval: 30000,
+                maxStalledCount: 10,
             },
         }),
         BullModule.registerQueue({
