@@ -53,7 +53,6 @@ const processors = [VerifyContractProcessor];
                 removeOnFail: true,
             },
             settings: {
-                lockDuration: 60000,
                 stalledInterval: 30000,
                 maxStalledCount: 10,
             },
