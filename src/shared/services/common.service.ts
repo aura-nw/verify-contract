@@ -149,17 +149,10 @@ export class CommonService {
         result: VERIFY_CODE_RESULT,
         msgCode: string,
     ) {
-        const resultCodeStep: VerifyCodeStep[] =
-            await verifyCodeStepRepository.findByCondition({
-                codeId,
-                checkId,
-            });
-
-        const codeStep: VerifyCodeStep = resultCodeStep[0];
-        codeStep.result = result;
-        codeStep.msgCode = msgCode;
-
-        await verifyCodeStepRepository.update(codeStep);
+        return await verifyCodeStepRepository.updateByCondition(
+            { codeId, checkId },
+            { result, msgCode },
+        );
     }
 
     async updateCodeIDVerifyStatus(
@@ -167,16 +160,9 @@ export class CommonService {
         codeId: number,
         verifyStatus: CONTRACT_VERIFICATION,
     ) {
-        const smartContractCodes: SmartContractCode[] =
-            await smartContractCodeRepository.findByCondition({
-                codeId,
-            });
-
-        smartContractCodes.map(
-            (smartContractCode: SmartContractCode) =>
-                (smartContractCode.contractVerification = verifyStatus),
+        return await smartContractCodeRepository.updateByCondition(
+            { codeId },
+            { contractVerification: verifyStatus },
         );
-
-        await smartContractCodeRepository.update(smartContractCodes);
     }
 }
