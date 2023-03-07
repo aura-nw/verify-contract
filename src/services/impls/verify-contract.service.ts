@@ -4,7 +4,6 @@ import { IVerifyContractService } from '../iverify-contract.service';
 import { MODULE_REQUEST, REPOSITORY_INTERFACE } from '../../module.config';
 import {
     ISmartContractCodeRepository,
-    ISmartContractsRepository,
     IVerifyCodeStepRepository,
 } from '../../repositories';
 import { InjectQueue } from '@nestjs/bull';
@@ -18,7 +17,7 @@ import {
     VERIFY_CODE_RESULT,
     VERIFY_STEP_CHECK_ID,
 } from '../../common';
-import { SmartContractCode, SmartContracts } from '../../../src/entities';
+import { SmartContractCode } from '../../../src/entities';
 import { CommonService, RedisService } from '../../shared/services';
 const _ = require('lodash');
 
@@ -32,8 +31,6 @@ export class VerifyContractService implements IVerifyContractService {
 
     constructor(
         private redisService: RedisService,
-        @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY)
-        private smartContractsRepository: ISmartContractsRepository,
         @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACT_CODE_REPOSITORY)
         private smartContractCodeRepository: ISmartContractCodeRepository,
         @Inject(REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY)
@@ -82,17 +79,10 @@ export class VerifyContractService implements IVerifyContractService {
             VERIFY_CODE_RESULT.IN_PROGRESS,
             null,
         );
-        let [contracts, smartContractCodes]: [
-            SmartContracts[],
-            SmartContractCode[],
-        ] = await Promise.all([
-            this.smartContractsRepository.findByCondition({
+        let smartContractCodes: SmartContractCode[] =
+            await this.smartContractCodeRepository.findByCondition({
                 codeId: request.codeId,
-            }),
-            this.smartContractCodeRepository.findByCondition({
-                codeId: request.codeId,
-            }),
-        ]);
+            });
         if (smartContractCodes.length === 0) {
             this._logger.log(
                 `Contract with code ID ${request.codeId} not found`,
@@ -106,8 +96,7 @@ export class VerifyContractService implements IVerifyContractService {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.CODE_ID_NOT_FOUND.Code,
                 ),
-                this.commonService.updateContractAndCodeIDVerifyStatus(
-                    this.smartContractsRepository,
+                this.commonService.updateCodeIDVerifyStatus(
                     this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
@@ -158,8 +147,7 @@ export class VerifyContractService implements IVerifyContractService {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.WRONG_COMPILER_IMAGE.Code,
                 ),
-                this.commonService.updateContractAndCodeIDVerifyStatus(
-                    this.smartContractsRepository,
+                this.commonService.updateCodeIDVerifyStatus(
                     this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
@@ -225,8 +213,7 @@ export class VerifyContractService implements IVerifyContractService {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.CODE_ID_BEING_VERIFIED.Code,
                 ),
-                this.commonService.updateContractAndCodeIDVerifyStatus(
-                    this.smartContractsRepository,
+                this.commonService.updateCodeIDVerifyStatus(
                     this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
@@ -288,8 +275,7 @@ export class VerifyContractService implements IVerifyContractService {
                         VERIFY_CODE_RESULT.FAIL,
                         ErrorMap.GET_DATA_HASH_FAIL.Code,
                     ),
-                    this.commonService.updateContractAndCodeIDVerifyStatus(
-                        this.smartContractsRepository,
+                    this.commonService.updateCodeIDVerifyStatus(
                         this.smartContractCodeRepository,
                         request.codeId,
                         CONTRACT_VERIFICATION.VERIFYFAIL,
@@ -336,7 +322,6 @@ export class VerifyContractService implements IVerifyContractService {
             'compile-wasm',
             {
                 request,
-                contracts,
                 contractCode: smartContractCodes[0],
             } as MODULE_REQUEST.VerifyContractJobRequest,
             {

@@ -10,9 +10,5 @@ export class VerifyContractJobRequest {
 
     @ApiProperty()
     @IsNotEmpty()
-    contracts: SmartContracts[];
-
-    @ApiProperty()
-    @IsNotEmpty()
     contractCode: SmartContractCode;
 }
