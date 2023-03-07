@@ -54,10 +54,14 @@ export class VerifyContractProcessor {
         concurrency: parseInt(process.env.CONCURRENCY_VERIFY_CONTRACT),
     })
     async handleVerifyContractJob(job: Job) {
-        this._logger.log('Start verifying smart contract source code');
+        this._logger.log(
+            `Start verify smart contract source code for job ${job.id}`,
+        );
+
         this.redisClient = await this.redisService.getRedisClient(
             this.redisClient,
         );
+
         let {
             request,
             contracts,
@@ -355,10 +359,31 @@ export class VerifyContractProcessor {
     }
 
     @OnQueueError()
-    async onError(job: Job, error: Error) {
-        this._logger.error(`Job: ${job}`);
-        this._logger.error(`Error job ${job.id} of type ${job.name}`);
+    async onError(error: Error) {
         this._logger.error(`Error: ${error}`);
+
+        const listUpdates: any[] = [];
+
+        const currentJobs = await this.redisClient.keys('code_id_*');
+        currentJobs.map((job: string) => {
+            listUpdates.push(this.redisClient.del(job));
+            return job.substring(job.lastIndexOf('_'));
+        });
+
+        const verifySteps = await this.verifyCodeStepRepository.findByCondition(
+            {
+                codeId: currentJobs,
+            },
+        );
+        verifySteps.map((step: VerifyCodeStep) => {
+            if (step.result === VERIFY_CODE_RESULT.IN_PROGRESS) {
+                step.result = VERIFY_CODE_RESULT.FAIL;
+                step.msgCode = ErrorMap.INTERNAL_ERROR.Code;
+            }
+        });
+        listUpdates.push(this.verifyCodeStepRepository.update(verifySteps));
+
+        await Promise.all(listUpdates);
     }
 
     @OnQueueFailed()
@@ -372,8 +397,10 @@ export class VerifyContractProcessor {
             },
         );
         verifySteps.map((step: VerifyCodeStep) => {
-            if (step.result === VERIFY_CODE_RESULT.IN_PROGRESS)
+            if (step.result === VERIFY_CODE_RESULT.IN_PROGRESS) {
                 step.result = VERIFY_CODE_RESULT.FAIL;
+                step.msgCode = ErrorMap.INTERNAL_ERROR.Code;
+            }
         });
 
         await Promise.all([
