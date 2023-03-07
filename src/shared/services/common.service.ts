@@ -162,36 +162,21 @@ export class CommonService {
         await verifyCodeStepRepository.update(codeStep);
     }
 
-    async updateContractAndCodeIDVerifyStatus(
-        smartContractsRepository: ISmartContractsRepository,
+    async updateCodeIDVerifyStatus(
         smartContractCodeRepository: ISmartContractCodeRepository,
         codeId: number,
         verifyStatus: CONTRACT_VERIFICATION,
     ) {
-        const [contracts, smartContractCodes]: [
-            SmartContracts[],
-            SmartContractCode[],
-        ] = await Promise.all([
-            smartContractsRepository.findByCondition({
+        const smartContractCodes: SmartContractCode[] =
+            await smartContractCodeRepository.findByCondition({
                 codeId,
-            }),
-            smartContractCodeRepository.findByCondition({
-                codeId,
-            }),
-        ]);
+            });
 
-        contracts.map(
-            (contract: SmartContracts) =>
-                (contract.contractVerification = verifyStatus),
-        );
         smartContractCodes.map(
             (smartContractCode: SmartContractCode) =>
                 (smartContractCode.contractVerification = verifyStatus),
         );
 
-        await Promise.all([
-            smartContractsRepository.update(contracts),
-            smartContractCodeRepository.update(smartContractCodes),
-        ]);
+        await smartContractCodeRepository.update(smartContractCodes);
     }
 }

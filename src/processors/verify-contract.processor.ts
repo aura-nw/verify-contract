@@ -12,14 +12,12 @@ import {
     CONTRACT_VERIFICATION,
     ErrorMap,
     SCHEMA_FILE,
-    UPLOAD_STATUS,
     VERIFY_CODE_RESULT,
     VERIFY_STEP_CHECK_ID,
 } from '../common';
 import { MODULE_REQUEST, REPOSITORY_INTERFACE } from '../module.config';
 import {
     ISmartContractCodeRepository,
-    ISmartContractsRepository,
     IVerifyCodeStepRepository,
 } from '../repositories';
 import { SmartContractCode, VerifyCodeStep } from '../entities';
@@ -36,8 +34,6 @@ export class VerifyContractProcessor {
     private ioredis;
 
     constructor(
-        @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY)
-        private smartContractsRepository: ISmartContractsRepository,
         @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACT_CODE_REPOSITORY)
         private smartContractCodeRepository: ISmartContractCodeRepository,
         @Inject(REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY)
@@ -62,11 +58,9 @@ export class VerifyContractProcessor {
             this.redisClient,
         );
 
-        let {
-            request,
-            contracts,
-            contractCode,
-        }: MODULE_REQUEST.VerifyContractJobRequest = job.data;
+        let { request, contractCode }: MODULE_REQUEST.VerifyContractJobRequest =
+            job.data;
+
         let contractDir, contractFolder;
         if (request.compilerVersion.match(process.env.WORKSPACE_REGEX)) {
             // Folder name of the contract. Example: cw20-base
@@ -105,8 +99,7 @@ export class VerifyContractProcessor {
                     VERIFY_CODE_RESULT.FAIL,
                     resultVerify.error.Code,
                 ),
-                this.commonService.updateContractAndCodeIDVerifyStatus(
-                    this.smartContractsRepository,
+                this.commonService.updateCodeIDVerifyStatus(
                     this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
@@ -143,8 +136,7 @@ export class VerifyContractProcessor {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.INTERNAL_ERROR.Code,
                 ),
-                this.commonService.updateContractAndCodeIDVerifyStatus(
-                    this.smartContractsRepository,
+                this.commonService.updateCodeIDVerifyStatus(
                     this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
@@ -184,8 +176,7 @@ export class VerifyContractProcessor {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.INTERNAL_ERROR.Code,
                 ),
-                this.commonService.updateContractAndCodeIDVerifyStatus(
-                    this.smartContractsRepository,
+                this.commonService.updateCodeIDVerifyStatus(
                     this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
@@ -228,8 +219,7 @@ export class VerifyContractProcessor {
                         VERIFY_CODE_RESULT.FAIL,
                         ErrorMap.INTERNAL_ERROR.Code,
                     ),
-                    this.commonService.updateContractAndCodeIDVerifyStatus(
-                        this.smartContractsRepository,
+                    this.commonService.updateCodeIDVerifyStatus(
                         this.smartContractCodeRepository,
                         request.codeId,
                         CONTRACT_VERIFICATION.VERIFYFAIL,
@@ -260,22 +250,10 @@ export class VerifyContractProcessor {
             }
         }
 
-        let listQueries = [];
         // Git URL to specific commit.
         // Example: https://github.com/aura-nw/flower-store-contract/commit/e3905a02e2c555226ddb92bbdc8739aeeaa87364
         let gitUrl = `${request.contractUrl}/commit/${request.commit}`;
-        contracts.map((contract) => {
-            contract.contractVerification = CONTRACT_VERIFICATION.VERIFIED;
-            contract.url = gitUrl;
-            contract.compilerVersion = request.compilerVersion;
-            contract.instantiateMsgSchema = instantiateMsg;
-            contract.queryMsgSchema = queryMsg;
-            contract.executeMsgSchema = executeMsg;
-            contract.s3Location = s3Location;
-            contract.verifiedAt = new Date();
-            contract.mainnetUploadStatus = UPLOAD_STATUS.NOT_REGISTERED;
-            listQueries.push(this.smartContractsRepository.update(contract));
-        });
+
         contractCode.contractVerification = CONTRACT_VERIFICATION.VERIFIED;
         contractCode.url = gitUrl;
         contractCode.compilerVersion = request.compilerVersion;
@@ -284,10 +262,9 @@ export class VerifyContractProcessor {
         contractCode.executeMsgSchema = executeMsg;
         contractCode.s3Location = s3Location;
         contractCode.verifiedAt = new Date();
-        listQueries.push(this.smartContractCodeRepository.update(contractCode));
 
         try {
-            await Promise.all(listQueries);
+            await this.smartContractCodeRepository.update(contractCode);
             this._logger.log('Update contracts successfully');
         } catch (error) {
             this._logger.error('Update contracts failed');
@@ -312,8 +289,7 @@ export class VerifyContractProcessor {
                     VERIFY_CODE_RESULT.FAIL,
                     ErrorMap.INTERNAL_ERROR.Code,
                 ),
-                this.commonService.updateContractAndCodeIDVerifyStatus(
-                    this.smartContractsRepository,
+                this.commonService.updateCodeIDVerifyStatus(
                     this.smartContractCodeRepository,
                     request.codeId,
                     CONTRACT_VERIFICATION.VERIFYFAIL,
