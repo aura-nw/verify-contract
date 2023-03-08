@@ -9,10 +9,6 @@ export enum LCD_QUERY {
     GET_DATA_CODE_ID = '/cosmwasm/wasm/v1/code/',
 }
 
-export enum REDIS_VERIFY_STATUS {
-    VERIFYING = 'Verifying',
-}
-
 export enum SCHEMA_FILE {
     INSTANTIATE = 'instantiate_msg.json',
     QUERY = 'query_msg.json',

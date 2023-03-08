@@ -13,7 +13,6 @@ import {
     CONTRACT_VERIFICATION,
     ErrorMap,
     LCD_QUERY,
-    REDIS_VERIFY_STATUS,
     VERIFY_CODE_RESULT,
     VERIFY_STEP_CHECK_ID,
 } from '../../common';
@@ -197,10 +196,10 @@ export class VerifyContractService implements IVerifyContractService {
                 request,
             });
 
-        const keyCodeId = await this.redisClient.get(
-            process.env.ZIP_PREFIX + request.codeId,
+        const keyCodeId = await this.redisClient.exists(
+            `verify-contract:verify-source-code:${request.codeId}`,
         );
-        if (keyCodeId) {
+        if (keyCodeId === 1) {
             this._logger.log(
                 `Code ID ${request.codeId} is currently being verified`,
             );
@@ -251,21 +250,12 @@ export class VerifyContractService implements IVerifyContractService {
             ),
         ]);
 
-        // Set code id and contract address to redis to prevent duplicate requests
-        await this.redisClient.set(
-            process.env.ZIP_PREFIX + request.codeId,
-            REDIS_VERIFY_STATUS.VERIFYING,
-        );
-
         if (
             !smartContractCodes[0].contractHash ||
             smartContractCodes[0].contractHash === ''
         ) {
             let dataHash = await this.getDataHash({ codeId: request.codeId });
             if (dataHash.Code === ErrorMap.E500.Code) {
-                await this.redisClient.del(
-                    process.env.ZIP_PREFIX + request.codeId,
-                );
                 // Update stage `Get Code ID data hash` status to 'Fail'
                 await Promise.all([
                     this.commonService.updateVerifyStatus(
@@ -325,7 +315,7 @@ export class VerifyContractService implements IVerifyContractService {
                 contractCode: smartContractCodes[0],
             } as MODULE_REQUEST.VerifyContractJobRequest,
             {
-                // jobId: request.codeId,
+                jobId: request.codeId,
                 removeOnComplete: true,
                 removeOnFail: true,
             },
