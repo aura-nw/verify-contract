@@ -340,15 +340,14 @@ export class VerifyContractProcessor {
 
         const listUpdates: any[] = [];
 
-        const currentJobs = await this.redisClient.keys('code_id_*');
-        currentJobs.map((job: string) => {
-            listUpdates.push(this.redisClient.del(job));
-            return job.substring(job.lastIndexOf('_'));
-        });
+        let codeId = error.name.substring(0, error.name.lastIndexOf(' '));
+        codeId = error.name.substring(error.name.lastIndexOf(' '));
+        const jobKey = process.env.ZIP_PREFIX + codeId;
+        listUpdates.push(this.redisClient.del(jobKey));
 
         const verifySteps = await this.verifyCodeStepRepository.findByCondition(
             {
-                codeId: currentJobs,
+                codeId,
             },
         );
         verifySteps.map((step: VerifyCodeStep) => {
