@@ -90,7 +90,6 @@ export class VerifyContractProcessor {
                 }),
             );
             await Promise.all([
-                // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
                 // Update stage `Compile source code` / `Get source code` / `Compare data hash` / `Internal process` status to 'Fail'
                 this.commonService.updateVerifyStatus(
                     this.verifyCodeStepRepository,
@@ -127,7 +126,6 @@ export class VerifyContractProcessor {
                 }),
             );
             await Promise.all([
-                // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
                 // Update stage `Internal process` status to 'Fail'
                 this.commonService.updateVerifyStatus(
                     this.verifyCodeStepRepository,
@@ -167,7 +165,6 @@ export class VerifyContractProcessor {
                 }),
             );
             await Promise.all([
-                // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
                 // Update stage `Internal process` status to 'Fail'
                 this.commonService.updateVerifyStatus(
                     this.verifyCodeStepRepository,
@@ -208,9 +205,6 @@ export class VerifyContractProcessor {
                     }),
                 );
                 await Promise.all([
-                    // this.redisClient.del(
-                    //     process.env.ZIP_PREFIX + request.codeId,
-                    // ),
                     // Update stage `Internal process` status to 'Fail'
                     this.commonService.updateVerifyStatus(
                         this.verifyCodeStepRepository,
@@ -280,7 +274,6 @@ export class VerifyContractProcessor {
                 }),
             );
             await Promise.all([
-                // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
                 // Update stage `Internal process` status to 'Fail'
                 this.commonService.updateVerifyStatus(
                     this.verifyCodeStepRepository,
@@ -308,7 +301,6 @@ export class VerifyContractProcessor {
             }),
         );
         await Promise.all([
-            // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
             // Update stage `Internal process` status to 'Success'
             this.commonService.updateVerifyStatus(
                 this.verifyCodeStepRepository,
@@ -340,28 +332,19 @@ export class VerifyContractProcessor {
 
         const listUpdates: any[] = [];
 
-        let codeId = error.name.substring(0, error.name.lastIndexOf(' '));
-        codeId = error.name.substring(error.name.lastIndexOf(' '));
-        // const jobKey = process.env.ZIP_PREFIX + codeId;
-        listUpdates.push([
-            // this.redisClient.del(jobKey),
+        let codeId = error.message.substring(0, error.message.lastIndexOf(' '));
+        codeId = codeId.substring(codeId.lastIndexOf(' ') + 1);
+        listUpdates.push(
             this.redisClient.del(
                 `verify-contract:verify-source-code:${codeId}`,
             ),
-        ]);
-
-        const verifySteps = await this.verifyCodeStepRepository.findByCondition(
-            {
-                codeId,
-            },
         );
-        verifySteps.map((step: VerifyCodeStep) => {
-            if (step.result === VERIFY_CODE_RESULT.IN_PROGRESS) {
-                step.result = VERIFY_CODE_RESULT.FAIL;
-                step.msgCode = ErrorMap.INTERNAL_ERROR.Code;
-            }
-        });
-        listUpdates.push(this.verifyCodeStepRepository.update(verifySteps));
+        listUpdates.push(
+            this.verifyCodeStepRepository.updateByCondition(
+                { codeId, result: VERIFY_CODE_RESULT.IN_PROGRESS },
+                { result: VERIFY_CODE_RESULT.FAIL },
+            ),
+        );
 
         await Promise.all(listUpdates);
     }
@@ -371,22 +354,13 @@ export class VerifyContractProcessor {
         this._logger.error(`Failed job ${job.id} of type ${job.name}`);
         this._logger.error(`Error: ${error}`);
 
-        const verifySteps = await this.verifyCodeStepRepository.findByCondition(
+        await this.verifyCodeStepRepository.updateByCondition(
             {
                 codeId: Number.parseInt(job.id.toString(), 10),
+                result: VERIFY_CODE_RESULT.IN_PROGRESS,
             },
+            { result: VERIFY_CODE_RESULT.FAIL },
         );
-        verifySteps.map((step: VerifyCodeStep) => {
-            if (step.result === VERIFY_CODE_RESULT.IN_PROGRESS) {
-                step.result = VERIFY_CODE_RESULT.FAIL;
-                step.msgCode = ErrorMap.INTERNAL_ERROR.Code;
-            }
-        });
-
-        await Promise.all([
-            // this.redisClient.del(process.env.ZIP_PREFIX + job.id),
-            this.verifyCodeStepRepository.update(verifySteps),
-        ]);
     }
 
     async compileSourceCode(
