@@ -51,7 +51,7 @@ const processors = [VerifyContractProcessor];
             defaultJobOptions: {
                 removeOnComplete: true,
                 removeOnFail: true,
-                timeout: 18000000,
+                timeout: 25000000,
             },
             settings: {
                 stalledInterval: 30000,
