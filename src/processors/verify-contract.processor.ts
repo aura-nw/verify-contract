@@ -343,7 +343,12 @@ export class VerifyContractProcessor {
         let codeId = error.name.substring(0, error.name.lastIndexOf(' '));
         codeId = error.name.substring(error.name.lastIndexOf(' '));
         const jobKey = process.env.ZIP_PREFIX + codeId;
-        listUpdates.push(this.redisClient.del(jobKey));
+        listUpdates.push([
+            this.redisClient.del(jobKey),
+            this.redisClient.del(
+                `verify-contract:verify-source-code:${codeId}`,
+            ),
+        ]);
 
         const verifySteps = await this.verifyCodeStepRepository.findByCondition(
             {
