@@ -197,10 +197,10 @@ export class VerifyContractService implements IVerifyContractService {
                 request,
             });
 
-        const keyCodeId = await this.redisClient.get(
-            process.env.ZIP_PREFIX + request.codeId,
+        const keyCodeId = await this.redisClient.exists(
+            `verify-contract:verify-source-code:${request.codeId}`,
         );
-        if (keyCodeId) {
+        if (keyCodeId === 1) {
             this._logger.log(
                 `Code ID ${request.codeId} is currently being verified`,
             );
@@ -252,10 +252,10 @@ export class VerifyContractService implements IVerifyContractService {
         ]);
 
         // Set code id and contract address to redis to prevent duplicate requests
-        await this.redisClient.set(
-            process.env.ZIP_PREFIX + request.codeId,
-            REDIS_VERIFY_STATUS.VERIFYING,
-        );
+        // await this.redisClient.set(
+        //     process.env.ZIP_PREFIX + request.codeId,
+        //     REDIS_VERIFY_STATUS.VERIFYING,
+        // );
 
         if (
             !smartContractCodes[0].contractHash ||
@@ -325,7 +325,7 @@ export class VerifyContractService implements IVerifyContractService {
                 contractCode: smartContractCodes[0],
             } as MODULE_REQUEST.VerifyContractJobRequest,
             {
-                // jobId: request.codeId,
+                jobId: request.codeId,
                 removeOnComplete: true,
                 removeOnFail: true,
             },

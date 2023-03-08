@@ -90,7 +90,7 @@ export class VerifyContractProcessor {
                 }),
             );
             await Promise.all([
-                this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+                // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
                 // Update stage `Compile source code` / `Get source code` / `Compare data hash` / `Internal process` status to 'Fail'
                 this.commonService.updateVerifyStatus(
                     this.verifyCodeStepRepository,
@@ -127,7 +127,7 @@ export class VerifyContractProcessor {
                 }),
             );
             await Promise.all([
-                this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+                // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
                 // Update stage `Internal process` status to 'Fail'
                 this.commonService.updateVerifyStatus(
                     this.verifyCodeStepRepository,
@@ -167,7 +167,7 @@ export class VerifyContractProcessor {
                 }),
             );
             await Promise.all([
-                this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+                // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
                 // Update stage `Internal process` status to 'Fail'
                 this.commonService.updateVerifyStatus(
                     this.verifyCodeStepRepository,
@@ -208,9 +208,9 @@ export class VerifyContractProcessor {
                     }),
                 );
                 await Promise.all([
-                    this.redisClient.del(
-                        process.env.ZIP_PREFIX + request.codeId,
-                    ),
+                    // this.redisClient.del(
+                    //     process.env.ZIP_PREFIX + request.codeId,
+                    // ),
                     // Update stage `Internal process` status to 'Fail'
                     this.commonService.updateVerifyStatus(
                         this.verifyCodeStepRepository,
@@ -280,7 +280,7 @@ export class VerifyContractProcessor {
                 }),
             );
             await Promise.all([
-                this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+                // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
                 // Update stage `Internal process` status to 'Fail'
                 this.commonService.updateVerifyStatus(
                     this.verifyCodeStepRepository,
@@ -308,7 +308,7 @@ export class VerifyContractProcessor {
             }),
         );
         await Promise.all([
-            this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
+            // this.redisClient.del(process.env.ZIP_PREFIX + request.codeId),
             // Update stage `Internal process` status to 'Success'
             this.commonService.updateVerifyStatus(
                 this.verifyCodeStepRepository,
@@ -342,9 +342,9 @@ export class VerifyContractProcessor {
 
         let codeId = error.name.substring(0, error.name.lastIndexOf(' '));
         codeId = error.name.substring(error.name.lastIndexOf(' '));
-        const jobKey = process.env.ZIP_PREFIX + codeId;
+        // const jobKey = process.env.ZIP_PREFIX + codeId;
         listUpdates.push([
-            this.redisClient.del(jobKey),
+            // this.redisClient.del(jobKey),
             this.redisClient.del(
                 `verify-contract:verify-source-code:${codeId}`,
             ),
@@ -384,7 +384,7 @@ export class VerifyContractProcessor {
         });
 
         await Promise.all([
-            this.redisClient.del(process.env.ZIP_PREFIX + job.id),
+            // this.redisClient.del(process.env.ZIP_PREFIX + job.id),
             this.verifyCodeStepRepository.update(verifySteps),
         ]);
     }
