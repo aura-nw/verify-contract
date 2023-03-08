@@ -354,13 +354,25 @@ export class VerifyContractProcessor {
         this._logger.error(`Failed job ${job.id} of type ${job.name}`);
         this._logger.error(`Error: ${error}`);
 
-        await this.verifyCodeStepRepository.updateByCondition(
-            {
-                codeId: Number.parseInt(job.id.toString(), 10),
-                result: VERIFY_CODE_RESULT.IN_PROGRESS,
-            },
-            { result: VERIFY_CODE_RESULT.FAIL },
+        const listUpdates: any[] = [];
+
+        listUpdates.push(
+            this.redisClient.del(
+                `verify-contract:verify-source-code:${job.id}`,
+            ),
         );
+
+        listUpdates.push(
+            this.verifyCodeStepRepository.updateByCondition(
+                {
+                    codeId: Number.parseInt(job.id.toString(), 10),
+                    result: VERIFY_CODE_RESULT.IN_PROGRESS,
+                },
+                { result: VERIFY_CODE_RESULT.FAIL },
+            ),
+        );
+
+        await Promise.all(listUpdates);
     }
 
     async compileSourceCode(
