@@ -47,7 +47,7 @@ export class VerifyContractProcessor {
 
     @Process({
         name: 'compile-wasm',
-        concurrency: parseInt(process.env.CONCURRENCY_VERIFY_CONTRACT),
+        concurrency: 5,
     })
     async handleVerifyContractJob(job: Job) {
         this._logger.log(
