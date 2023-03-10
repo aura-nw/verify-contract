@@ -30,7 +30,7 @@ export const ErrorMap = {
     },
     DATA_HASH_MATCH: {
         Code: 'S007',
-        Message: 'Data hash match..',
+        Message: 'Data hash match.',
     },
     VERIFY_SUCCESSFUL: {
         Code: 'S008',

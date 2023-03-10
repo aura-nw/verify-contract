@@ -20,7 +20,7 @@ import {
     ISmartContractCodeRepository,
     IVerifyCodeStepRepository,
 } from '../repositories';
-import { SmartContractCode, VerifyCodeStep } from '../entities';
+import { SmartContractCode } from '../entities';
 import { execSync } from 'child_process';
 import { CommonService, RedisService } from '../shared/services';
 import fs from 'fs';
@@ -47,7 +47,7 @@ export class VerifyContractProcessor {
 
     @Process({
         name: 'compile-wasm',
-        concurrency: 5,
+        concurrency: parseInt(process.env.CONCURRENCY_VERIFY_CONTRACT),
     })
     async handleVerifyContractJob(job: Job) {
         this._logger.log(

@@ -113,7 +113,12 @@ export class CommonService {
             return false;
         }
 
-        if (!fs.existsSync(`${projectFolder}/artifacts/${wasmFile}`))
+        if (
+            !fs.existsSync(`${projectFolder}/artifacts/checksums.txt`) ||
+            !fs.existsSync(
+                `${projectFolder}/artifacts/checksums_intermediate.txt`,
+            )
+        )
             return false;
 
         return true;
