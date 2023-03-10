@@ -20,7 +20,7 @@ import {
     ISmartContractCodeRepository,
     IVerifyCodeStepRepository,
 } from '../repositories';
-import { SmartContractCode, VerifyCodeStep } from '../entities';
+import { SmartContractCode } from '../entities';
 import { execSync } from 'child_process';
 import { CommonService, RedisService } from '../shared/services';
 import fs from 'fs';
