@@ -258,7 +258,21 @@ export class VerifyContractProcessor {
         contractCode.verifiedAt = new Date();
 
         try {
-            await this.smartContractCodeRepository.update(contractCode);
+            await this.smartContractCodeRepository.updateByCondition(
+                {
+                    contractHash: contractCode.contractHash,
+                },
+                {
+                    contractVerification: CONTRACT_VERIFICATION.VERIFIED,
+                    url: gitUrl,
+                    compilerVersion: request.compilerVersion,
+                    instantiateMsgSchema: instantiateMsg,
+                    queryMsgSchema: queryMsg,
+                    executeMsgSchema: executeMsg,
+                    s3Location: s3Location,
+                    verifiedAt: new Date(),
+                },
+            );
             this._logger.log('Update contracts successfully');
         } catch (error) {
             this._logger.error('Update contracts failed');
