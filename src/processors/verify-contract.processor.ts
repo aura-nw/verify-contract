@@ -61,20 +61,21 @@ export class VerifyContractProcessor {
         let { request, contractCode }: MODULE_REQUEST.VerifyContractJobRequest =
             job.data;
 
-        let contractDir, contractFolder;
-        if (request.compilerVersion.match(process.env.WORKSPACE_REGEX)) {
-            // Folder name of the contract. Example: cw20-base
-            contractFolder = new String(request.wasmFile.split('.')[0]);
-            contractFolder = contractFolder.replaceAll('_', '-');
-            // Folder path of the contract in workspace contract case.
-            // Example: contracts/cw20-base
-            contractDir = process.env.WORKSPACE_DIR + contractFolder;
-        } else contractDir = '';
+        // Folder name of the contract. Example: cw20-base
+        let contractFolder: any = new String(request.wasmFile.split('.')[0]);
+        contractFolder = contractFolder.replaceAll('_', '-');
+        // let contractDir;
+        // if (request.compilerVersion.match(process.env.WORKSPACE_REGEX)) {
+        //     // Folder path of the contract in workspace contract case.
+        //     // Example: contracts/cw20-base
+        //     contractDir = process.env.WORKSPACE_DIR + contractFolder;
+        // } else contractDir = '';
 
         let resultVerify = await this.compileSourceCode(
             request,
             contractCode,
-            contractDir,
+            contractFolder,
+            // contractDir,
         );
         if (resultVerify.error) {
             this._logger.error('Verify contract failed');
@@ -382,7 +383,8 @@ export class VerifyContractProcessor {
     async compileSourceCode(
         request: MODULE_REQUEST.VerifySourceCodeRequest,
         contractCode: SmartContractCode,
-        contractDir: string,
+        contractFolder: string,
+        // contractDir: string,
     ) {
         // Folder name of project. Example: cw-plus
         let projectFolder = request.contractUrl.substring(
@@ -450,6 +452,12 @@ export class VerifyContractProcessor {
             ),
         ]);
 
+        let contractDir,
+            workspace = false;
+        if (fs.existsSync(`${tempDir}/${projectFolder}/contracts`)) {
+            contractDir = process.env.WORKSPACE_DIR + contractFolder;
+            workspace = true;
+        } else contractDir = '';
         // Full path from temp dir to contract folder.
         // Example: temp/tempdir1669369179601387/cw-plus/contracts/cw20-base -- Workspace Project
         // Example: temp/tempdir1669369179601387/flower-store-contract -- Single Project
@@ -461,7 +469,7 @@ export class VerifyContractProcessor {
             request.compilerVersion,
             `${pwd}/${tempDir}/${projectFolder}`,
             contractDir,
-            request.wasmFile,
+            workspace,
         );
         if (!compiled)
             return {
