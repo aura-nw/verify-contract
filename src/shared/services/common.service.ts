@@ -70,13 +70,13 @@ export class CommonService {
         compilerImage: string,
         projectFolder: string,
         contractDir: string,
-        wasmFile: string,
+        workspace: boolean,
     ): Promise<boolean> {
         let docker;
         let optimize = compilerImage.match(process.env.WORKSPACE_REGEX)
             ? '/usr/local/bin/optimize_workspace.sh'
             : '/usr/local/bin/optimize.sh';
-        let command = compilerImage.match(process.env.WORKSPACE_REGEX)
+        let command = workspace
             ? `${optimize} . && cd ${contractDir}/ && cargo schema`
             : `${optimize} . && cargo schema`;
         try {

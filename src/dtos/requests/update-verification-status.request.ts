@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-import { CONTRACT_VERIFICATION } from 'src/common';
+import { CONTRACT_VERIFICATION } from '../../common';
 
 export class UpdateVerificationStatusRequest {
     @ApiProperty()
