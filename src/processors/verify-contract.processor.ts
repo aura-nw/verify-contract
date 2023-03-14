@@ -248,20 +248,10 @@ export class VerifyContractProcessor {
         // Example: https://github.com/aura-nw/flower-store-contract/commit/e3905a02e2c555226ddb92bbdc8739aeeaa87364
         let gitUrl = `${request.contractUrl}/commit/${request.commit}`;
 
-        contractCode.contractVerification = CONTRACT_VERIFICATION.VERIFIED;
-        contractCode.url = gitUrl;
-        contractCode.compilerVersion = request.compilerVersion;
-        contractCode.instantiateMsgSchema = instantiateMsg;
-        contractCode.queryMsgSchema = queryMsg;
-        contractCode.executeMsgSchema = executeMsg;
-        contractCode.s3Location = s3Location;
-        contractCode.verifiedAt = new Date();
-
         try {
-            await this.smartContractCodeRepository.updateByCondition(
-                {
-                    contractHash: contractCode.contractHash,
-                },
+            await this.smartContractCodeRepository.updateVerificationStatus(
+                contractCode.contractHash,
+                contractCode.codeId,
                 {
                     contractVerification: CONTRACT_VERIFICATION.VERIFIED,
                     url: gitUrl,
@@ -271,7 +261,7 @@ export class VerifyContractProcessor {
                     executeMsgSchema: executeMsg,
                     s3Location: s3Location,
                     verifiedAt: new Date(),
-                },
+                } as MODULE_REQUEST.UpdateVerificationStatusRequest,
             );
             this._logger.log('Update contracts successfully');
         } catch (error) {
