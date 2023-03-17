@@ -1,37 +1,37 @@
 name: Continuous integration
 
 on:
-    push:
-        branches: [main, develop, staging, serenity, euphoria]
+  push:
+    branches: [main, develop, staging, serenity, euphoria]
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-        steps:
-            - uses: actions/checkout@v2
-            - name: Set environment variable
-              run: |
-                  SHORT_SHA_COMMIT=$(git rev-parse --short HEAD)
-                  echo CONTAINER_RELEASE_IMAGE=ghcr.io/aura-nw/multisig-sync:${GITHUB_REF_NAME}_${SHORT_SHA_COMMIT} >> $GITHUB_ENV
-                  echo REPO_MANIFEST_NAME=gitops >> $GITHUB_ENV
-                  echo REPO_MANIFEST_URL=github.com/aura-nw/gitops.git >> $GITHUB_ENV
-                  echo REPO_MANIFEST_BRANCH=master >> $GITHUB_ENV
-                  echo REPO_MANIFEST_ENV_DEV=./clusters/k8s-dev/multisig-safe >> $GITHUB_ENV
-                  echo REPO_MANIFEST_ENV_STAGING=./clusters/k8s-prod/multisig-safe >> $GITHUB_ENV
-                  echo REPO_MANIFEST_ENV_MAIN=./clusters/k8s-main/multisig-safe >> $GITHUB_ENV
-                  echo REPO_MANIFEST_ENV_EUPHORIA=./clusters/k8s-testnet-euphoria/multisig-safe >> $GITHUB_ENV
-                  echo REPO_MANIFEST_ENV_SERENITY=./clusters/k8s-testnet-serenity/multisig-safe >> $GITHUB_ENV
-                  echo REPO_MANIFEST_TAG_IMAGE=image_multisig_sync >> $GITHUB_ENV
-            - name: Build the Docker image and push it to the registry
-              env:
-                  GITHUB_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-                  GITHUB_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-              run: |
-                  chmod 777 -R ./ci
-                  ./ci/build.sh
-            - name: Update manifest
-              env:
-                  PERSONAL_ACCESS_TOKEN: ${{ secrets.GITOPS_PASSWORD }}
-              run: |
-                  ./ci/updateManifest.sh
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set environment variable
+        run: |
+          SHORT_SHA_COMMIT=$(git rev-parse --short HEAD)
+          echo CONTAINER_RELEASE_IMAGE=ghcr.io/aura-nw/verify-contract:${GITHUB_REF_NAME}_${SHORT_SHA_COMMIT} >> $GITHUB_ENV
+          echo REPO_MANIFEST_NAME=gitops >> $GITHUB_ENV
+          echo REPO_MANIFEST_URL=github.com/aura-nw/gitops.git >> $GITHUB_ENV
+          echo REPO_MANIFEST_BRANCH=master >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_DEV=./clusters/k8s-dev/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_STAGING=./clusters/k8s-prod/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_MAIN=./clusters/k8s-main/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_EUPHORIA=./clusters/k8s-testnet-euphoria/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_ENV_SERENITY=./clusters/k8s-testnet-serenity/explorer >> $GITHUB_ENV
+          echo REPO_MANIFEST_TAG_IMAGE=image_verify_contract >> $GITHUB_ENV
+      - name: Build the Docker image and push it to the registry
+        env:
+          GITHUB_USERNAME: ${{ github.actor }}
+          GITHUB_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod 777 -R ./ci
+          ./ci/build.sh
+      - name: Update manifest
+        env:
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          ./ci/updateManifest.sh

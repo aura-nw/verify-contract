@@ -33,8 +33,11 @@
   },
   "homepage": "https://github.com/aura-nw/verify-contract#readme",
   "dependencies": {
+    "@bull-board/api": "^4.6.4",
+    "@bull-board/express": "^4.6.4",
     "@nestjs/axios": "^1.0.0",
     "@nestjs/bull": "^0.6.2",
+    "@nestjs/cli": "^9.1.5",
     "@nestjs/common": "^9.2.0",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.2.0",
@@ -46,9 +49,9 @@
     "bull": "^4.10.1",
     "dockerode": "^3.3.4",
     "fs": "0.0.1-security",
-    "mysql": "^2.18.1",
-    "nodegit": "^0.27.0",
+    "mysql2": "^3.2.0",
     "redis": "^4.5.1",
+    "rimraf": "^3.0.2",
     "source-map-support": "^0.5.21",
     "ts-node": "^10.9.1",
     "typeorm": "^0.3.10",
@@ -59,7 +62,6 @@
     "@types/bull": "^4.10.0",
     "@types/dockerode": "^3.3.14",
     "@types/node": "^18.11.9",
-    "@types/nodegit": "^0.28.2",
     "class-validator": "^0.13.2",
     "rxjs": "^7.5.7"
   }

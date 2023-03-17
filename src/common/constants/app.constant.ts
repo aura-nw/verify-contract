@@ -1,4 +1,4 @@
-export enum AppConstants { }
+export enum AppConstants {}
 
 export enum DATABASE_TYPE {
     POSTGRES = 'postgres',
@@ -6,11 +6,7 @@ export enum DATABASE_TYPE {
 }
 
 export enum LCD_QUERY {
-    GET_DATA_CODE_ID = '/cosmwasm/wasm/v1/code/'
-}
-
-export enum REDIS_VERIFY_STATUS {
-    VERIFYING = 'Verifying',
+    GET_DATA_CODE_ID = '/cosmwasm/wasm/v1/code/',
 }
 
 export enum SCHEMA_FILE {
@@ -25,6 +21,7 @@ export enum SCHEMA_FILE {
 export enum CONTRACT_VERIFICATION {
     VERIFIED = 'VERIFIED',
     UNVERIFIED = 'UNVERIFIED',
+    VERIFYFAIL = 'VERIFYFAIL',
 }
 
 export enum UPLOAD_STATUS {
@@ -33,4 +30,22 @@ export enum UPLOAD_STATUS {
     TBD = 'TBD',
     DEPLOYED = 'Deployed',
     REJECTED = 'Rejected',
+}
+
+export enum VERIFY_CODE_RESULT {
+    FAIL = 'Fail',
+    IN_PROGRESS = 'In-progress',
+    SUCCESS = 'Success',
+    PENDING = 'Pending',
+}
+
+export enum VERIFY_STEP_CHECK_ID {
+    CODE_ID_VALID = 1,
+    COMPILER_IMAGE_FORMAT = 2,
+    CODE_ID_SESSION_VALID = 3,
+    GET_DATA_HASH = 4,
+    GET_SOURCE_CODE = 5,
+    COMPILE_SOURCE_CODE = 6,
+    COMPARE_DATA_HASH = 7,
+    INTERNAL_PROCESS = 8,
 }

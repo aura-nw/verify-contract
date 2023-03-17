@@ -54,6 +54,13 @@ export interface IBaseRepository {
     update(data: any | any): Promise<any>;
 
     /**
+     * updateByCondition
+     * @param condition
+     * @param data
+     */
+    updateByCondition(condition: any | any, data: any | any): Promise<any>;
+
+    /**
      * remove
      * @param id
      */
