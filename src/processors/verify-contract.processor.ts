@@ -193,35 +193,38 @@ export class VerifyContractProcessor {
                     `${resultVerify.fullContractDir}${process.env.SCHEMA_DIR}${file}`,
                 );
             } catch (error) {
-                this._logger.error('Read schema file failed');
-                this._logger.error(error);
-                // Notify stage `Internal process` failed
-                this.ioredis.publish(
-                    process.env.REDIS_CHANNEL,
-                    JSON.stringify({
-                        Code: ErrorMap.INTERNAL_ERROR.Code,
-                        Message: ErrorMap.INTERNAL_ERROR.Message,
-                        CodeId: request.codeId,
-                        Verified: false,
-                    }),
-                );
-                await Promise.all([
-                    // Update stage `Internal process` status to 'Fail'
-                    this.commonService.updateVerifyStatus(
-                        this.verifyCodeStepRepository,
-                        request.codeId,
-                        VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
-                        VERIFY_CODE_RESULT.FAIL,
-                        ErrorMap.INTERNAL_ERROR.Code,
-                    ),
-                    this.commonService.updateCodeIDVerifyStatus(
-                        this.smartContractCodeRepository,
-                        request.codeId,
-                        CONTRACT_VERIFICATION.VERIFYFAIL,
-                    ),
-                ]);
-                this.commonService.removeTempDir(resultVerify.tempDir);
-                return;
+                this._logger.error(error.code);
+                if (error.code !== 'EISDIR') {
+                    this._logger.error('Read schema file failed');
+                    this._logger.error(error);
+                    // Notify stage `Internal process` failed
+                    this.ioredis.publish(
+                        process.env.REDIS_CHANNEL,
+                        JSON.stringify({
+                            Code: ErrorMap.INTERNAL_ERROR.Code,
+                            Message: ErrorMap.INTERNAL_ERROR.Message,
+                            CodeId: request.codeId,
+                            Verified: false,
+                        }),
+                    );
+                    await Promise.all([
+                        // Update stage `Internal process` status to 'Fail'
+                        this.commonService.updateVerifyStatus(
+                            this.verifyCodeStepRepository,
+                            request.codeId,
+                            VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                            VERIFY_CODE_RESULT.FAIL,
+                            ErrorMap.INTERNAL_ERROR.Code,
+                        ),
+                        this.commonService.updateCodeIDVerifyStatus(
+                            this.smartContractCodeRepository,
+                            request.codeId,
+                            CONTRACT_VERIFICATION.VERIFYFAIL,
+                        ),
+                    ]);
+                    this.commonService.removeTempDir(resultVerify.tempDir);
+                    return;
+                }
             }
             switch (file) {
                 case SCHEMA_FILE.INSTANTIATE:
