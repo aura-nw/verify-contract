@@ -1,18 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional } from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
 
 export class VerifySourceCodeRequest {
     @ApiProperty({
-        required: false
+        required: false,
     })
-    @IsOptional()
+    @IsNotEmpty()
     codeId: number;
-
-    @ApiProperty({
-        required: false
-    })
-    @IsOptional()
-    contractAddress: string;
 
     @ApiProperty()
     @IsNotEmpty()
