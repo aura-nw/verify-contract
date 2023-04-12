@@ -6,14 +6,8 @@ import Docker from 'dockerode';
 import AWS from 'aws-sdk';
 import {
     ISmartContractCodeRepository,
-    ISmartContractsRepository,
     IVerifyCodeStepRepository,
 } from '../../../src/repositories';
-import {
-    SmartContractCode,
-    SmartContracts,
-    VerifyCodeStep,
-} from '../../../src/entities';
 import { CONTRACT_VERIFICATION, VERIFY_CODE_RESULT } from '../../../src/common';
 
 export class CommonService {
@@ -86,14 +80,17 @@ export class CommonService {
             return false;
         }
 
+        this._logger.log(`Start pulling docker image ${compilerImage}`);
+        const pullStream = await docker.pull(compilerImage, {
+            stdio: 'inherit',
+        });
+        await new Promise((res) =>
+            docker.modem.followProgress(pullStream, res),
+        );
+        this._logger.log(`Finish pulling docker image ${compilerImage}`);
+
         try {
-            execSync(`docker pull ${compilerImage}`, { stdio: 'inherit' });
-        } catch (error) {
-            this._logger.error(error);
-            return false;
-        }
-        try {
-            await docker.run(compilerImage, [], process.stdout, {
+            await docker.run(`docker.io/${compilerImage}`, [], process.stdout, {
                 Entrypoint: '/bin/sh',
                 Cmd: ['-c', command],
                 Volumes: {
