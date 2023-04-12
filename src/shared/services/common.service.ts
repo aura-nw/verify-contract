@@ -80,12 +80,14 @@ export class CommonService {
             return false;
         }
 
+        this._logger.log(`Start pulling docker image ${compilerImage}`);
         const pullStream = await docker.pull(compilerImage, {
             stdio: 'inherit',
         });
         await new Promise((res) =>
             docker.modem.followProgress(pullStream, res),
         );
+        this._logger.log(`Finish pulling docker image ${compilerImage}`);
 
         try {
             await docker.run(`docker.io/${compilerImage}`, [], process.stdout, {
