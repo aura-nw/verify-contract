@@ -18,10 +18,10 @@ export enum SCHEMA_FILE {
     CW20_EXECUTE = 'cw20_execute_msg.json',
 }
 
-export enum CONTRACT_VERIFICATION {
-    VERIFIED = 'VERIFIED',
-    UNVERIFIED = 'UNVERIFIED',
-    VERIFYFAIL = 'VERIFYFAIL',
+export enum VERIFICATION_STATUS {
+    FAIL = 'FAIL',
+    VERIFYING = 'VERIFYING',
+    SUCCESS = 'SUCCESS',
 }
 
 export enum UPLOAD_STATUS {

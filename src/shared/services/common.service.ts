@@ -8,7 +8,7 @@ import {
     ISmartContractCodeRepository,
     IVerifyCodeStepRepository,
 } from '../../../src/repositories';
-import { CONTRACT_VERIFICATION, VERIFY_CODE_RESULT } from '../../../src/common';
+import { VERIFICATION_STATUS, VERIFY_CODE_RESULT } from '../../../src/common';
 
 export class CommonService {
     private readonly _logger = new Logger(CommonService.name);
@@ -160,7 +160,7 @@ export class CommonService {
     async updateCodeIDVerifyStatus(
         smartContractCodeRepository: ISmartContractCodeRepository,
         codeId: number,
-        verifyStatus: CONTRACT_VERIFICATION,
+        verifyStatus: VERIFICATION_STATUS,
     ) {
         return await smartContractCodeRepository.updateByCondition(
             { codeId },
