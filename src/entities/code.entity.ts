@@ -1,5 +1,5 @@
-import { Column, Entity } from 'typeorm';
-import { BaseEntityAutoId } from './base/base.entity';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { BaseEntity, BaseEntityAutoId } from './base/base.entity';
 
 export interface IInstantiatePermission {
     permission: string;
@@ -8,8 +8,8 @@ export interface IInstantiatePermission {
 }
 
 @Entity('code')
-export class Code extends BaseEntityAutoId {
-    @Column({ name: 'code_id' })
+export class Code extends BaseEntity {
+    @PrimaryColumn({ name: 'code_id' })
     codeId: number;
 
     @Column()

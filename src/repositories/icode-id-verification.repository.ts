@@ -20,6 +20,7 @@ export interface ICodeIdVerificationRepository extends IBaseRepository {
      * @param verifyStep
      */
     updateVerifyStep(
+        id: number,
         codeId: number,
         verifyStep: MODULE_REQUEST.UpdateVerifyStepRequest,
         verificationStatus?: string,

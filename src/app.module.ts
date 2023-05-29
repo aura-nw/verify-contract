@@ -14,17 +14,10 @@ import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
 import { VerifyContractProcessor } from './processors/verify-contract.processor';
 import {
-    SmartContractCodeRepository,
-    SmartContractsRepository,
-    VerifyCodeStepRepository,
-    VerifyItemCheckRepository,
+    CodeIdVerificationRepository,
+    CodeRepository,
 } from './repositories/impls';
-const entities = [
-    ENTITIES_CONFIG.SMART_CONTRACTS,
-    ENTITIES_CONFIG.SMART_CONTRACT_CODE,
-    ENTITIES_CONFIG.VERIFY_CODE_STEP,
-    ENTITIES_CONFIG.VERIFY_ITEM_CHECK,
-];
+const entities = [ENTITIES_CONFIG.CODE, ENTITIES_CONFIG.CODE_ID_VERIFICATION];
 const controllers = [VerifyContractController];
 const processors = [VerifyContractProcessor];
 // @Global()
@@ -76,20 +69,12 @@ const processors = [VerifyContractProcessor];
         CommonService,
         // repositories
         {
-            provide: REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY,
-            useClass: SmartContractsRepository,
+            provide: REPOSITORY_INTERFACE.ICODE_ID_VERIFICATION_REPOSITORY,
+            useClass: CodeIdVerificationRepository,
         },
         {
-            provide: REPOSITORY_INTERFACE.ISMART_CONTRACT_CODE_REPOSITORY,
-            useClass: SmartContractCodeRepository,
-        },
-        {
-            provide: REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY,
-            useClass: VerifyCodeStepRepository,
-        },
-        {
-            provide: REPOSITORY_INTERFACE.IVERIFY_ITEM_CHECK_REPOSITORY,
-            useClass: VerifyItemCheckRepository,
+            provide: REPOSITORY_INTERFACE.ICODE_REPOSITORY,
+            useClass: CodeRepository,
         },
         // processors
         ...processors,

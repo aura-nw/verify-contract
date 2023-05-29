@@ -10,4 +10,8 @@ export class VerifyContractJobRequest {
     @ApiProperty()
     @IsNotEmpty()
     dataHash: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    verificationId: number;
 }

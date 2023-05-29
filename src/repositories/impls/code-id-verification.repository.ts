@@ -5,7 +5,7 @@ import { ObjectLiteral, Repository } from 'typeorm';
 import { ENTITIES_CONFIG, MODULE_REQUEST } from '../../module.config';
 import { ICodeIdVerificationRepository } from '../icode-id-verification.repository';
 import { CodeIdVerification } from '../../entities';
-import { VERIFY_CODE_RESULT } from 'src/common';
+import { VERIFY_CODE_RESULT } from '../../common';
 @Injectable()
 export class CodeIdVerificationRepository
     extends BaseRepository
@@ -43,20 +43,22 @@ export class CodeIdVerificationRepository
     }
 
     public async updateVerifyStep(
+        id: number,
         codeId: number,
         verifyStep: MODULE_REQUEST.UpdateVerifyStepRequest,
         verificationStatus?: string,
     ) {
-        return await this.repos
-            .createQueryBuilder()
+        const queryBuilder = this.repos.createQueryBuilder(
+            'code_id_verification',
+        );
+        return await queryBuilder
             .update(CodeIdVerification)
             .set({
                 verificationStatus,
                 verifyStep,
             })
             .where({ codeId })
-            .orderBy('created_at', 'DESC')
-            .limit(1)
+            .andWhere({ id })
             .execute();
     }
 

@@ -84,12 +84,13 @@ export class VerifyContractService implements IVerifyContractService {
         let codes: Code[] = await this.codeRepository.findByCondition({
             codeId: request.codeId,
         });
+        let verification = null;
         if (codes.length === 0) {
             this._logger.log(
                 `Contract with code ID ${request.codeId} not found`,
             );
             // Update stage `Code ID valid` status to 'Fail'
-            await this.codeIdVerificationRepository.create({
+            verification = await this.codeIdVerificationRepository.create({
                 codeId: request.codeId,
                 dataHash: '',
                 instantiateMsgSchema: null,
@@ -120,7 +121,7 @@ export class VerifyContractService implements IVerifyContractService {
             }),
         );
         // Update stage `Compiler image format` status to 'In progress'
-        await this.codeIdVerificationRepository.create({
+        verification = await this.codeIdVerificationRepository.create({
             codeId: request.codeId,
             dataHash: codes[0].dataHash,
             instantiateMsgSchema: null,
@@ -144,6 +145,7 @@ export class VerifyContractService implements IVerifyContractService {
         ) {
             // Update stage `Compiler image format` status to 'Fail'
             await this.codeIdVerificationRepository.updateVerifyStep(
+                verification.id,
                 request.codeId,
                 {
                     step: VERIFY_STEP_CHECK_ID.COMPILER_IMAGE_FORMAT,
@@ -167,6 +169,7 @@ export class VerifyContractService implements IVerifyContractService {
         );
         // Update stage `Code ID verification session valid` status to 'In progress'
         await this.codeIdVerificationRepository.updateVerifyStep(
+            verification.id,
             request.codeId,
             {
                 step: VERIFY_STEP_CHECK_ID.CODE_ID_SESSION_VALID,
@@ -188,6 +191,7 @@ export class VerifyContractService implements IVerifyContractService {
             );
             // Update stage `Code ID verification session valid` status to 'Fail'
             await this.codeIdVerificationRepository.updateVerifyStep(
+                verification.id,
                 request.codeId,
                 {
                     step: VERIFY_STEP_CHECK_ID.CODE_ID_SESSION_VALID,
@@ -211,6 +215,7 @@ export class VerifyContractService implements IVerifyContractService {
         );
         // Update stage `Get Code ID data hash` status to 'In progress'
         await this.codeIdVerificationRepository.updateVerifyStep(
+            verification.id,
             request.codeId,
             {
                 step: VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
@@ -224,6 +229,7 @@ export class VerifyContractService implements IVerifyContractService {
             if (dataHash.Code === ErrorMap.E500.Code) {
                 // Update stage `Get Code ID data hash` status to 'Fail'
                 await this.codeIdVerificationRepository.updateVerifyStep(
+                    verification.id,
                     request.codeId,
                     {
                         step: VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
@@ -249,6 +255,7 @@ export class VerifyContractService implements IVerifyContractService {
         );
         // Update stage `Get Code ID data hash` status to 'Success'
         await this.codeIdVerificationRepository.updateVerifyStep(
+            verification.id,
             request.codeId,
             {
                 step: VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
@@ -262,6 +269,7 @@ export class VerifyContractService implements IVerifyContractService {
             {
                 request,
                 dataHash: codes[0].dataHash,
+                verificationId: verification.id,
             } as MODULE_REQUEST.VerifyContractJobRequest,
             {
                 jobId: request.codeId,

@@ -24,7 +24,6 @@ import { execSync } from 'child_process';
 import { CommonService, RedisService } from '../shared/services';
 import fs from 'fs';
 import { Not } from 'typeorm';
-import { CodeIdVerification } from '../entities';
 
 @Processor('verify-source-code')
 export class VerifyContractProcessor {
@@ -59,11 +58,15 @@ export class VerifyContractProcessor {
             this.redisClient,
         );
 
-        let { request, dataHash }: MODULE_REQUEST.VerifyContractJobRequest =
-            job.data;
+        let {
+            request,
+            dataHash,
+            verificationId,
+        }: MODULE_REQUEST.VerifyContractJobRequest = job.data;
 
         // Update stage `Get source code` status to 'In progress'
         await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
             request.codeId,
             {
                 step: VERIFY_STEP_CHECK_ID.GET_SOURCE_CODE,
@@ -80,6 +83,7 @@ export class VerifyContractProcessor {
             request,
             dataHash,
             contractFolder,
+            verificationId,
         );
         if (resultVerify.error) {
             this._logger.error('Verify contract failed');
@@ -96,6 +100,7 @@ export class VerifyContractProcessor {
             );
             // Update stage `Compile source code` / `Get source code` / `Compare data hash` / `Internal process` status to 'Fail'
             await this.codeIdVerificationRepository.updateVerifyStep(
+                verificationId,
                 request.codeId,
                 {
                     step: resultVerify.verifyItemCheckId,
@@ -127,6 +132,7 @@ export class VerifyContractProcessor {
             );
             // Update stage `Internal process` status to 'Fail'
             await this.codeIdVerificationRepository.updateVerifyStep(
+                verificationId,
                 request.codeId,
                 {
                     step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
@@ -161,6 +167,7 @@ export class VerifyContractProcessor {
             );
             // Update stage `Internal process` status to 'Fail'
             await this.codeIdVerificationRepository.updateVerifyStep(
+                verificationId,
                 request.codeId,
                 {
                     step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
@@ -198,6 +205,7 @@ export class VerifyContractProcessor {
                     );
                     // Update stage `Internal process` status to 'Fail'
                     await this.codeIdVerificationRepository.updateVerifyStep(
+                        verificationId,
                         request.codeId,
                         {
                             step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
@@ -264,7 +272,7 @@ export class VerifyContractProcessor {
                     queryMsgSchema: queryMsg,
                     executeMsgSchema: executeMsg,
                     s3Location,
-                    verificationStatus: VERIFICATION_STATUS.FAIL,
+                    verificationStatus: VERIFICATION_STATUS.SUCCESS,
                     compilerVersion: request.compilerVersion,
                     githubUrl: gitUrl,
                     verifyStep: {
@@ -293,6 +301,7 @@ export class VerifyContractProcessor {
             );
             // Update stage `Internal process` status to 'Fail'
             await this.codeIdVerificationRepository.updateVerifyStep(
+                verificationId,
                 request.codeId,
                 {
                     step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
@@ -315,6 +324,7 @@ export class VerifyContractProcessor {
         );
         // Update stage `Internal process` status to 'Success'
         await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
             request.codeId,
             {
                 step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
@@ -374,6 +384,7 @@ export class VerifyContractProcessor {
         request: MODULE_REQUEST.VerifySourceCodeRequest,
         dataHash: string,
         contractFolder: string,
+        verificationId: number,
     ) {
         // Folder name of project. Example: cw-plus
         let projectFolder = request.contractUrl.substring(
@@ -424,6 +435,7 @@ export class VerifyContractProcessor {
         );
         // Update stage `Compile source code` status to 'In progress'
         await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
             request.codeId,
             {
                 step: VERIFY_STEP_CHECK_ID.COMPILE_SOURCE_CODE,
@@ -468,6 +480,7 @@ export class VerifyContractProcessor {
         );
         // Update stage `Compare data hash` status to 'In progress'
         await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
             request.codeId,
             {
                 step: VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
@@ -514,6 +527,7 @@ export class VerifyContractProcessor {
         );
         // Update stage `Internal process` status to 'In progress'
         await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
             request.codeId,
             {
                 step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
