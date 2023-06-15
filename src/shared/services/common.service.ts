@@ -4,11 +4,6 @@ import * as fs from 'fs';
 import { execSync } from 'child_process';
 import Docker from 'dockerode';
 import AWS from 'aws-sdk';
-import {
-    ISmartContractCodeRepository,
-    IVerifyCodeStepRepository,
-} from '../../../src/repositories';
-import { CONTRACT_VERIFICATION, VERIFY_CODE_RESULT } from '../../../src/common';
 
 export class CommonService {
     private readonly _logger = new Logger(CommonService.name);
@@ -142,29 +137,5 @@ export class CommonService {
             this._logger.error(error);
             return '';
         }
-    }
-
-    async updateVerifyStatus(
-        verifyCodeStepRepository: IVerifyCodeStepRepository,
-        codeId: number,
-        checkId: number,
-        result: VERIFY_CODE_RESULT,
-        msgCode: string,
-    ) {
-        return await verifyCodeStepRepository.updateByCondition(
-            { codeId, checkId },
-            { result, msgCode },
-        );
-    }
-
-    async updateCodeIDVerifyStatus(
-        smartContractCodeRepository: ISmartContractCodeRepository,
-        codeId: number,
-        verifyStatus: CONTRACT_VERIFICATION,
-    ) {
-        return await smartContractCodeRepository.updateByCondition(
-            { codeId },
-            { contractVerification: verifyStatus },
-        );
     }
 }

@@ -1,17 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-import { VerifySourceCodeRequest } from './verify-source-code.request';
 
-export class VerifyContractJobRequest {
+export class UpdateVerifyStepRequest {
     @ApiProperty()
     @IsNotEmpty()
-    request: VerifySourceCodeRequest;
-
-    @ApiProperty()
-    @IsNotEmpty()
-    dataHash: string;
+    step: number;
 
     @ApiProperty()
     @IsNotEmpty()
-    verificationId: number;
+    result: string;
+
+    @ApiProperty()
+    @IsNotEmpty()
+    msg_code: string;
 }

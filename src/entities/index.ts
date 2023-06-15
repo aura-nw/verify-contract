@@ -1,4 +1,2 @@
-export * from './smart-contracts.entity';
-export * from './verify-code-step.entity';
-export * from './verify-item-check.entity';
-export * from './smart-contract-code.entity';
+export * from './code-id-verification.entity';
+export * from './code.entity';
