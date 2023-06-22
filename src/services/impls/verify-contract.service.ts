@@ -34,12 +34,25 @@ export class VerifyContractService implements IVerifyContractService {
         @Inject(REPOSITORY_INTERFACE.ICODE_REPOSITORY)
         private codeRepository: ICodeRepository,
         @InjectQueue('verify-source-code') private readonly syncQueue: Queue,
+        @InjectQueue('detect-stuck-jobs') private readonly detectQueue: Queue,
     ) {
         this._logger.log(
             '============== Constructor Verify Contract Service ==============',
         );
         this.lcd = process.env.LCD;
         this.ioredis = this.redisService.getIoRedis(this.ioredis);
+        this.detectQueue.add(
+            'get-stuck-jobs',
+            {
+            },
+            {
+                removeOnComplete: true,
+                removeOnFail: true,
+                repeat: {
+                    every: parseInt(process.env.MILLISECOND_DETECT_JOBS),
+                },
+            },
+        );
     }
 
     async getDataHash(

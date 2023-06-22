@@ -27,15 +27,22 @@ async function bootstrap() {
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath('/admin/queues');
 
-    let queue = new BullAdapter(Queue(
+    const queueVerifyContract = new BullAdapter(Queue(
       'verify-source-code',
       `redis://${process.env.REDIS_USERNAME}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}/${process.env.REDIS_DB}`,
       {
         prefix: 'verify-contract',
       }
     ));
+    const queueDetectStuckJobs = new BullAdapter(Queue(
+      'detect-stuck-jobs',
+      `redis://${process.env.REDIS_USERNAME}:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}/${process.env.REDIS_DB}`,
+      {
+        prefix: 'verify-contract',
+      }
+    ));
     createBullBoard({
-      queues: [queue],
+      queues: [queueVerifyContract, queueDetectStuckJobs],
       serverAdapter
     });
     app.use('/admin/queues', serverAdapter.getRouter());

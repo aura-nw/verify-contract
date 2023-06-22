@@ -17,9 +17,10 @@ import {
     CodeIdVerificationRepository,
     CodeRepository,
 } from './repositories/impls';
+import { DetectStuckJobsProcessor } from './processors/detect-stuck-jobs.processor';
 const entities = [ENTITIES_CONFIG.CODE, ENTITIES_CONFIG.CODE_ID_VERIFICATION];
 const controllers = [VerifyContractController];
-const processors = [VerifyContractProcessor];
+const processors = [VerifyContractProcessor, DetectStuckJobsProcessor];
 // @Global()
 @Module({
     imports: [
@@ -51,9 +52,14 @@ const processors = [VerifyContractProcessor];
                 maxStalledCount: 10,
             },
         }),
-        BullModule.registerQueue({
-            name: 'verify-source-code',
-        }),
+        BullModule.registerQueue(
+            {
+                name: 'verify-source-code',
+            },
+            {
+                name: 'detect-stuck-jobs',
+            }
+        ),
         RedisService,
         CommonService,
     ],
