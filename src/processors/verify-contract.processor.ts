@@ -246,8 +246,7 @@ export class VerifyContractProcessor {
 
         try {
             await this.codeIdVerificationRepository.updateVerificationStatus(
-                dataHash,
-                request.codeId,
+                verificationId,
                 {
                     verificationStatus: VERIFICATION_STATUS.SUCCESS,
                     githubUrl: gitUrl,

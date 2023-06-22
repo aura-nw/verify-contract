@@ -20,8 +20,7 @@ export class CodeIdVerificationRepository
     }
 
     public async updateVerificationStatus(
-        dataHash: string,
-        codeId: number,
+        verificationId: number,
         verifiedInfo: MODULE_REQUEST.UpdateVerificationStatusRequest,
     ) {
         return await this.repos
@@ -37,8 +36,7 @@ export class CodeIdVerificationRepository
                 s3Location: verifiedInfo.s3Location,
                 verifiedAt: verifiedInfo.verifiedAt,
             })
-            .where('dataHash = :dataHash', { dataHash })
-            .orWhere('codeId = :codeId', { codeId })
+            .where('id = :verificationId', { verificationId })
             .execute();
     }
 
