@@ -9,8 +9,7 @@ export interface ICodeIdVerificationRepository extends IBaseRepository {
      * @param verifiedInfo
      */
     updateVerificationStatus(
-        dataHash: string,
-        codeId: number,
+        verificationId: number,
         verifiedInfo: MODULE_REQUEST.UpdateVerificationStatusRequest,
     );
 
