@@ -28,7 +28,7 @@ export class DetectStuckJobsProcessor {
         name: 'get-stuck-jobs'
     })
     async detectStuckJobs() {
-        const now = new Date();
+        const ThirtySecsAgo = new Date(new Date().setDate(new Date().getSeconds() - 30));
 
         const stuckVerifications = await this.codeIdVerificationRepository.findByCondition({
             verificationStatus: VERIFICATION_STATUS.VERIFYING,
@@ -37,7 +37,7 @@ export class DetectStuckJobsProcessor {
                 result: VERIFY_CODE_RESULT.SUCCESS,
                 msg_code: ErrorMap.GET_DATA_HASH_SUCCESSFUL.Code,
             },
-            updatedAt: LessThanOrEqual(now)
+            updatedAt: LessThanOrEqual(ThirtySecsAgo)
         });
 
         stuckVerifications.map((verification: CodeIdVerification) => {
