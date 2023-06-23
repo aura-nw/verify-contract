@@ -48,9 +48,9 @@ export class VerifyContractService implements IVerifyContractService {
             {
                 removeOnComplete: true,
                 removeOnFail: true,
-                repeat: {
-                    every: parseInt(process.env.MILLISECOND_DETECT_JOBS),
-                },
+                // repeat: {
+                //     every: parseInt(process.env.MILLISECOND_DETECT_JOBS),
+                // },
             },
         );
     }

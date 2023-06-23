@@ -28,32 +28,27 @@ export class DetectStuckJobsProcessor {
         name: 'get-stuck-jobs'
     })
     async detectStuckJobs() {
-        const ThirtySecsAgo = new Date(new Date().setDate(new Date().getSeconds() - 30));
-
-        const stuckVerifications = await this.codeIdVerificationRepository.findByCondition({
-            verificationStatus: VERIFICATION_STATUS.VERIFYING,
-            verifyStep: {
+        const stuckVerifications = await this.codeIdVerificationRepository.getStuckJobs(
+            VERIFICATION_STATUS.VERIFYING,
+            {
                 step: VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
                 result: VERIFY_CODE_RESULT.SUCCESS,
                 msg_code: ErrorMap.GET_DATA_HASH_SUCCESSFUL.Code,
-            },
-            updatedAt: LessThanOrEqual(ThirtySecsAgo)
-        });
+            }
+        );
 
-        stuckVerifications.map((verification: CodeIdVerification) => {
-            verification.verificationStatus = VERIFICATION_STATUS.FAIL;
-            this.ioredis.publish(
-                process.env.REDIS_CHANNEL,
-                JSON.stringify({
-                    Code: ErrorMap.CANNOT_PROCESS.Code,
-                    Message: ErrorMap.CANNOT_PROCESS.Message,
-                    CodeId: verification.codeId,
-                    Verified: false,
-                }),
-            );
-        });
-
-        await this.codeIdVerificationRepository.update(stuckVerifications);
+        stuckVerifications
+            .map(verification => {
+                this.ioredis.publish(
+                    process.env.REDIS_CHANNEL,
+                    JSON.stringify({
+                        Code: ErrorMap.CANNOT_PROCESS.Code,
+                        Message: ErrorMap.CANNOT_PROCESS.Message,
+                        CodeId: verification.codeId,
+                        Verified: false,
+                    }),
+                );
+            });
     }
 
     @OnQueueActive()

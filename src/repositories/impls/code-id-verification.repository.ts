@@ -5,7 +5,7 @@ import { ObjectLiteral, Repository } from 'typeorm';
 import { ENTITIES_CONFIG, MODULE_REQUEST } from '../../module.config';
 import { ICodeIdVerificationRepository } from '../icode-id-verification.repository';
 import { CodeIdVerification } from '../../entities';
-import { VERIFY_CODE_RESULT } from '../../common';
+import { VERIFICATION_STATUS, VERIFY_CODE_RESULT } from '../../common';
 @Injectable()
 export class CodeIdVerificationRepository
     extends BaseRepository
@@ -80,5 +80,31 @@ export class CodeIdVerificationRepository
             .orderBy('created_at', 'DESC')
             .limit(1)
             .execute();
+    }
+
+    public async getStuckJobs(verificationStatus: string, verifyStep: any) {
+        const thirtySecsAgo = new Date().getTime() - 30000;
+
+        const verifyingResults = await this.repos.createQueryBuilder()
+            .select('*')
+            .where(
+                `verification_status = '${verificationStatus}'
+                AND verify_step ::jsonb @> \'${JSON.stringify(verifyStep)}\'`
+            )
+            .getRawMany();
+
+        const stuckVerifications = verifyingResults
+            .filter(verification => verification.updated_at.getTime() <= thirtySecsAgo)
+            .map(verification => verification.id);
+
+        await this.repos.createQueryBuilder()
+            .update(CodeIdVerification)
+            .set({
+                verificationStatus: VERIFICATION_STATUS.FAIL
+            })
+            .whereInIds(stuckVerifications)
+            .execute();
+
+        return stuckVerifications;
     }
 }
