@@ -3,7 +3,7 @@ import { Inject, Logger } from "@nestjs/common";
 import { REPOSITORY_INTERFACE } from "../module.config";
 import { ICodeIdVerificationRepository } from "../repositories";
 import { RedisService } from "../shared/services";
-import { ErrorMap, VERIFICATION_STATUS } from "../common";
+import { ErrorMap, VERIFICATION_STATUS, VERIFY_CODE_RESULT, VERIFY_STEP_CHECK_ID } from "../common";
 import { LessThanOrEqual } from "typeorm";
 import { CodeIdVerification } from "../entities";
 import { Job } from "bull";
@@ -32,6 +32,11 @@ export class DetectStuckJobsProcessor {
 
         const stuckVerifications = await this.codeIdVerificationRepository.findByCondition({
             verificationStatus: VERIFICATION_STATUS.VERIFYING,
+            verifyStep: {
+                step: VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
+                result: VERIFY_CODE_RESULT.SUCCESS,
+                msg_code: ErrorMap.GET_DATA_HASH_SUCCESSFUL.Code,
+            },
             updatedAt: LessThanOrEqual(now)
         });
 
