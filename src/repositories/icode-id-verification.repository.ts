@@ -30,4 +30,11 @@ export interface ICodeIdVerificationRepository extends IBaseRepository {
      * @param codeId
      */
     handleJobCrash(codeId: number);
+
+    /**
+     * Get stuck jobs
+     * @param verificationStatus 
+     * @param verifyStep 
+     */
+    getStuckJobs(verificationStatus: string, verifyStep: any);
 }
