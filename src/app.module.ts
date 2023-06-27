@@ -42,19 +42,14 @@ const processors = [VerifyContractProcessor, DetectStuckJobsProcessor];
                 db: parseInt(process.env.REDIS_DB, 10),
             },
             prefix: 'verify-contract',
-            defaultJobOptions: {
-                removeOnComplete: true,
-                removeOnFail: true,
-                timeout: 30000000,
-            },
-            settings: {
-                stalledInterval: 30000,
-                maxStalledCount: 10,
-            },
         }),
         BullModule.registerQueue(
             {
                 name: 'verify-source-code',
+                settings: {
+                    stalledInterval: 30000,
+                    maxStalledCount: 10,
+                },
             },
             {
                 name: 'detect-stuck-jobs',

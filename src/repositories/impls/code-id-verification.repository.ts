@@ -66,7 +66,7 @@ export class CodeIdVerificationRepository
                 codeId,
             },
             order: {
-                created_at: 'DESC',
+                id: 'DESC',
             },
         });
         verify.verifyStep.result = VERIFY_CODE_RESULT.FAIL;
@@ -76,9 +76,7 @@ export class CodeIdVerificationRepository
             .set({
                 verifyStep: verify.verifyStep,
             })
-            .where({ codeId })
-            .orderBy('id', 'DESC')
-            .limit(1)
+            .where({ id: verify.id })
             .execute();
     }
 

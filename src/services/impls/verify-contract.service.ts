@@ -48,9 +48,9 @@ export class VerifyContractService implements IVerifyContractService {
             {
                 removeOnComplete: true,
                 removeOnFail: true,
-                // repeat: {
-                //     every: parseInt(process.env.MILLISECOND_DETECT_JOBS),
-                // },
+                repeat: {
+                    every: parseInt(process.env.MILLISECOND_DETECT_JOBS),
+                },
             },
         );
     }
@@ -288,6 +288,7 @@ export class VerifyContractService implements IVerifyContractService {
                 jobId: request.codeId,
                 removeOnComplete: true,
                 removeOnFail: true,
+                timeout: 30000000,
             },
         );
 
