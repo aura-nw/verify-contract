@@ -77,7 +77,7 @@ export class CodeIdVerificationRepository
                 verifyStep: verify.verifyStep,
             })
             .where({ codeId })
-            .orderBy('created_at', 'DESC')
+            .orderBy('id', 'DESC')
             .limit(1)
             .execute();
     }
