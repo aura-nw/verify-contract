@@ -46,6 +46,7 @@ export class VerifyContractService implements IVerifyContractService {
             {
             },
             {
+                priority: 2,
                 removeOnComplete: true,
                 removeOnFail: true,
                 repeat: {
@@ -286,6 +287,7 @@ export class VerifyContractService implements IVerifyContractService {
             } as MODULE_REQUEST.VerifyContractJobRequest,
             {
                 jobId: request.codeId,
+                priority: 1,
                 removeOnComplete: true,
                 removeOnFail: true,
                 timeout: 30000000,
