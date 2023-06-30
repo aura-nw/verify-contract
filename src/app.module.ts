@@ -50,9 +50,11 @@ const processors = [VerifyContractProcessor, DetectStuckJobsProcessor];
                     stalledInterval: 30000,
                     maxStalledCount: 10,
                 },
+                processors: ['./src/processors/verify-contract.processor.ts']
             },
             {
                 name: 'detect-stuck-jobs',
+                processors: ['./src/processors/detect-stuck-jobs.processor.ts']
             }
         ),
         RedisService,
