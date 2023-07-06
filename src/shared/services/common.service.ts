@@ -66,8 +66,8 @@ export class CommonService {
             ? '/usr/local/bin/optimize_workspace.sh'
             : '/usr/local/bin/optimize.sh';
         let command = workspace
-            ? `${optimize} . && cd ${contractDir}/ && cargo schema`
-            : `${optimize} . && cargo schema`;
+            ? `${optimize} . && cd ${contractDir}/ && cargo run --bin schema`
+            : `${optimize} . && cargo run --bin schema`;
         try {
             docker = new Docker();
         } catch (error) {
