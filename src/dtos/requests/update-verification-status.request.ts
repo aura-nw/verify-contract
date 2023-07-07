@@ -1,15 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
-import { CONTRACT_VERIFICATION } from '../../common';
+import { VERIFICATION_STATUS } from '../../common';
 
 export class UpdateVerificationStatusRequest {
     @ApiProperty()
     @IsNotEmpty()
-    contractVerification: CONTRACT_VERIFICATION;
+    verificationStatus: VERIFICATION_STATUS;
 
     @ApiProperty()
     @IsNotEmpty()
-    url: string;
+    githubUrl: string;
 
     @ApiProperty()
     @IsNotEmpty()

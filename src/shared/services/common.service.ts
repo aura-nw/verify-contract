@@ -4,11 +4,6 @@ import * as fs from 'fs';
 import { execSync } from 'child_process';
 import Docker from 'dockerode';
 import AWS from 'aws-sdk';
-import {
-    ISmartContractCodeRepository,
-    IVerifyCodeStepRepository,
-} from '../../../src/repositories';
-import { CONTRACT_VERIFICATION, VERIFY_CODE_RESULT } from '../../../src/common';
 
 export class CommonService {
     private readonly _logger = new Logger(CommonService.name);
@@ -71,8 +66,8 @@ export class CommonService {
             ? '/usr/local/bin/optimize_workspace.sh'
             : '/usr/local/bin/optimize.sh';
         let command = workspace
-            ? `${optimize} . && cd ${contractDir}/ && cargo schema`
-            : `${optimize} . && cargo schema`;
+            ? `${optimize} . && cd ${contractDir}/ && cargo run --bin schema`
+            : `${optimize} . && cargo run --bin schema`;
         try {
             docker = new Docker();
         } catch (error) {
@@ -142,29 +137,5 @@ export class CommonService {
             this._logger.error(error);
             return '';
         }
-    }
-
-    async updateVerifyStatus(
-        verifyCodeStepRepository: IVerifyCodeStepRepository,
-        codeId: number,
-        checkId: number,
-        result: VERIFY_CODE_RESULT,
-        msgCode: string,
-    ) {
-        return await verifyCodeStepRepository.updateByCondition(
-            { codeId, checkId },
-            { result, msgCode },
-        );
-    }
-
-    async updateCodeIDVerifyStatus(
-        smartContractCodeRepository: ISmartContractCodeRepository,
-        codeId: number,
-        verifyStatus: CONTRACT_VERIFICATION,
-    ) {
-        return await smartContractCodeRepository.updateByCondition(
-            { codeId },
-            { contractVerification: verifyStatus },
-        );
     }
 }

@@ -9,7 +9,7 @@ import {
 import { Logger, Inject } from '@nestjs/common';
 import { Job } from 'bull';
 import {
-    CONTRACT_VERIFICATION,
+    VERIFICATION_STATUS,
     ErrorMap,
     SCHEMA_FILE,
     VERIFY_CODE_RESULT,
@@ -17,13 +17,13 @@ import {
 } from '../common';
 import { MODULE_REQUEST, REPOSITORY_INTERFACE } from '../module.config';
 import {
-    ISmartContractCodeRepository,
-    IVerifyCodeStepRepository,
+    ICodeIdVerificationRepository,
+    ICodeRepository,
 } from '../repositories';
-import { SmartContractCode } from '../entities';
 import { execSync } from 'child_process';
 import { CommonService, RedisService } from '../shared/services';
 import fs from 'fs';
+import { Not } from 'typeorm';
 
 @Processor('verify-source-code')
 export class VerifyContractProcessor {
@@ -34,10 +34,10 @@ export class VerifyContractProcessor {
     private ioredis;
 
     constructor(
-        @Inject(REPOSITORY_INTERFACE.ISMART_CONTRACT_CODE_REPOSITORY)
-        private smartContractCodeRepository: ISmartContractCodeRepository,
-        @Inject(REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY)
-        private verifyCodeStepRepository: IVerifyCodeStepRepository,
+        @Inject(REPOSITORY_INTERFACE.ICODE_REPOSITORY)
+        private codeRepository: ICodeRepository,
+        @Inject(REPOSITORY_INTERFACE.ICODE_ID_VERIFICATION_REPOSITORY)
+        private codeIdVerificationRepository: ICodeIdVerificationRepository,
     ) {
         this._logger.log(
             '============== Constructor Verify Contract Processor Service ==============',
@@ -58,8 +58,22 @@ export class VerifyContractProcessor {
             this.redisClient,
         );
 
-        let { request, contractCode }: MODULE_REQUEST.VerifyContractJobRequest =
-            job.data;
+        let {
+            request,
+            dataHash,
+            verificationId,
+        }: MODULE_REQUEST.VerifyContractJobRequest = job.data;
+
+        // Update stage `Get source code` status to 'In progress'
+        await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
+            request.codeId,
+            {
+                step: VERIFY_STEP_CHECK_ID.GET_SOURCE_CODE,
+                result: VERIFY_CODE_RESULT.IN_PROGRESS,
+                msg_code: null,
+            },
+        );
 
         // Folder name of the contract. Example: cw20-base
         let contractFolder: any = new String(request.wasmFile.split('.')[0]);
@@ -67,8 +81,9 @@ export class VerifyContractProcessor {
 
         let resultVerify = await this.compileSourceCode(
             request,
-            contractCode,
+            dataHash,
             contractFolder,
+            verificationId,
         );
         if (resultVerify.error) {
             this._logger.error('Verify contract failed');
@@ -83,21 +98,17 @@ export class VerifyContractProcessor {
                     Verified: false,
                 }),
             );
-            await Promise.all([
-                // Update stage `Compile source code` / `Get source code` / `Compare data hash` / `Internal process` status to 'Fail'
-                this.commonService.updateVerifyStatus(
-                    this.verifyCodeStepRepository,
-                    request.codeId,
-                    resultVerify.verifyItemCheckId,
-                    VERIFY_CODE_RESULT.FAIL,
-                    resultVerify.error.Code,
-                ),
-                this.commonService.updateCodeIDVerifyStatus(
-                    this.smartContractCodeRepository,
-                    request.codeId,
-                    CONTRACT_VERIFICATION.VERIFYFAIL,
-                ),
-            ]);
+            // Update stage `Compile source code` / `Get source code` / `Compare data hash` / `Internal process` status to 'Fail'
+            await this.codeIdVerificationRepository.updateVerifyStep(
+                verificationId,
+                request.codeId,
+                {
+                    step: resultVerify.verifyItemCheckId,
+                    result: VERIFY_CODE_RESULT.FAIL,
+                    msg_code: resultVerify.error.Code,
+                },
+                VERIFICATION_STATUS.FAIL,
+            );
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
@@ -119,21 +130,17 @@ export class VerifyContractProcessor {
                     Verified: false,
                 }),
             );
-            await Promise.all([
-                // Update stage `Internal process` status to 'Fail'
-                this.commonService.updateVerifyStatus(
-                    this.verifyCodeStepRepository,
-                    request.codeId,
-                    VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
-                    VERIFY_CODE_RESULT.FAIL,
-                    ErrorMap.INTERNAL_ERROR.Code,
-                ),
-                this.commonService.updateCodeIDVerifyStatus(
-                    this.smartContractCodeRepository,
-                    request.codeId,
-                    CONTRACT_VERIFICATION.VERIFYFAIL,
-                ),
-            ]);
+            // Update stage `Internal process` status to 'Fail'
+            await this.codeIdVerificationRepository.updateVerifyStep(
+                verificationId,
+                request.codeId,
+                {
+                    step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                    result: VERIFY_CODE_RESULT.FAIL,
+                    msg_code: ErrorMap.INTERNAL_ERROR.Code,
+                },
+                VERIFICATION_STATUS.FAIL,
+            );
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
@@ -158,21 +165,17 @@ export class VerifyContractProcessor {
                     Verified: false,
                 }),
             );
-            await Promise.all([
-                // Update stage `Internal process` status to 'Fail'
-                this.commonService.updateVerifyStatus(
-                    this.verifyCodeStepRepository,
-                    request.codeId,
-                    VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
-                    VERIFY_CODE_RESULT.FAIL,
-                    ErrorMap.INTERNAL_ERROR.Code,
-                ),
-                this.commonService.updateCodeIDVerifyStatus(
-                    this.smartContractCodeRepository,
-                    request.codeId,
-                    CONTRACT_VERIFICATION.VERIFYFAIL,
-                ),
-            ]);
+            // Update stage `Internal process` status to 'Fail'
+            await this.codeIdVerificationRepository.updateVerifyStep(
+                verificationId,
+                request.codeId,
+                {
+                    step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                    result: VERIFY_CODE_RESULT.FAIL,
+                    msg_code: ErrorMap.INTERNAL_ERROR.Code,
+                },
+                VERIFICATION_STATUS.FAIL,
+            );
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
@@ -200,21 +203,17 @@ export class VerifyContractProcessor {
                             Verified: false,
                         }),
                     );
-                    await Promise.all([
-                        // Update stage `Internal process` status to 'Fail'
-                        this.commonService.updateVerifyStatus(
-                            this.verifyCodeStepRepository,
-                            request.codeId,
-                            VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
-                            VERIFY_CODE_RESULT.FAIL,
-                            ErrorMap.INTERNAL_ERROR.Code,
-                        ),
-                        this.commonService.updateCodeIDVerifyStatus(
-                            this.smartContractCodeRepository,
-                            request.codeId,
-                            CONTRACT_VERIFICATION.VERIFYFAIL,
-                        ),
-                    ]);
+                    // Update stage `Internal process` status to 'Fail'
+                    await this.codeIdVerificationRepository.updateVerifyStep(
+                        verificationId,
+                        request.codeId,
+                        {
+                            step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                            result: VERIFY_CODE_RESULT.FAIL,
+                            msg_code: ErrorMap.INTERNAL_ERROR.Code,
+                        },
+                        VERIFICATION_STATUS.FAIL,
+                    );
                     this.commonService.removeTempDir(resultVerify.tempDir);
                     return;
                 }
@@ -246,20 +245,45 @@ export class VerifyContractProcessor {
         let gitUrl = `${request.contractUrl}/commit/${request.commit}`;
 
         try {
-            await this.smartContractCodeRepository.updateVerificationStatus(
-                contractCode.contractHash,
-                contractCode.codeId,
+            await this.codeIdVerificationRepository.updateVerificationStatus(
+                verificationId,
                 {
-                    contractVerification: CONTRACT_VERIFICATION.VERIFIED,
-                    url: gitUrl,
+                    verificationStatus: VERIFICATION_STATUS.SUCCESS,
+                    githubUrl: gitUrl,
                     compilerVersion: request.compilerVersion,
                     instantiateMsgSchema: instantiateMsg,
                     queryMsgSchema: queryMsg,
                     executeMsgSchema: executeMsg,
-                    s3Location: s3Location,
+                    s3Location,
                     verifiedAt: new Date(),
                 } as MODULE_REQUEST.UpdateVerificationStatusRequest,
             );
+
+            const similarCodes = await this.codeRepository.findByCondition({
+                dataHash,
+                codeId: Not(request.codeId),
+            });
+            const verifiedCodes = similarCodes.map((code) => {
+                return {
+                    codeId: code.codeId,
+                    dataHash,
+                    instantiateMsgSchema: instantiateMsg,
+                    queryMsgSchema: queryMsg,
+                    executeMsgSchema: executeMsg,
+                    s3Location,
+                    verificationStatus: VERIFICATION_STATUS.SUCCESS,
+                    compilerVersion: request.compilerVersion,
+                    githubUrl: gitUrl,
+                    verifyStep: {
+                        step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                        result: VERIFY_CODE_RESULT.SUCCESS,
+                        msg_code: ErrorMap.VERIFY_SUCCESSFUL.Code,
+                    },
+                    verifiedAt: new Date(),
+                };
+            });
+            await this.codeIdVerificationRepository.create(verifiedCodes);
+
             this._logger.log('Update contracts successfully');
         } catch (error) {
             this._logger.error('Update contracts failed');
@@ -274,21 +298,17 @@ export class VerifyContractProcessor {
                     Verified: false,
                 }),
             );
-            await Promise.all([
-                // Update stage `Internal process` status to 'Fail'
-                this.commonService.updateVerifyStatus(
-                    this.verifyCodeStepRepository,
-                    request.codeId,
-                    VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
-                    VERIFY_CODE_RESULT.FAIL,
-                    ErrorMap.INTERNAL_ERROR.Code,
-                ),
-                this.commonService.updateCodeIDVerifyStatus(
-                    this.smartContractCodeRepository,
-                    request.codeId,
-                    CONTRACT_VERIFICATION.VERIFYFAIL,
-                ),
-            ]);
+            // Update stage `Internal process` status to 'Fail'
+            await this.codeIdVerificationRepository.updateVerifyStep(
+                verificationId,
+                request.codeId,
+                {
+                    step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                    result: VERIFY_CODE_RESULT.FAIL,
+                    msg_code: ErrorMap.INTERNAL_ERROR.Code,
+                },
+                VERIFICATION_STATUS.FAIL,
+            );
             this.commonService.removeTempDir(resultVerify.tempDir);
             return;
         }
@@ -301,16 +321,16 @@ export class VerifyContractProcessor {
                 Verified: true,
             }),
         );
-        await Promise.all([
-            // Update stage `Internal process` status to 'Success'
-            this.commonService.updateVerifyStatus(
-                this.verifyCodeStepRepository,
-                request.codeId,
-                VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
-                VERIFY_CODE_RESULT.SUCCESS,
-                ErrorMap.VERIFY_SUCCESSFUL.Code,
-            ),
-        ]);
+        // Update stage `Internal process` status to 'Success'
+        await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
+            request.codeId,
+            {
+                step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                result: VERIFY_CODE_RESULT.SUCCESS,
+                msg_code: ErrorMap.VERIFY_SUCCESSFUL.Code,
+            },
+        );
         this.commonService.removeTempDir(resultVerify.tempDir);
 
         return {};
@@ -338,9 +358,8 @@ export class VerifyContractProcessor {
             this.redisClient.del(
                 `verify-contract:verify-source-code:${codeId}`,
             ),
-            this.verifyCodeStepRepository.updateByCondition(
-                { codeId, result: VERIFY_CODE_RESULT.IN_PROGRESS },
-                { result: VERIFY_CODE_RESULT.FAIL },
+            this.codeIdVerificationRepository.handleJobCrash(
+                Number.parseInt(codeId, 10),
             ),
         ]);
     }
@@ -354,21 +373,17 @@ export class VerifyContractProcessor {
             this.redisClient.del(
                 `verify-contract:verify-source-code:${job.id}`,
             ),
-            this.verifyCodeStepRepository.updateByCondition(
-                {
-                    codeId: Number.parseInt(job.id.toString(), 10),
-                    result: VERIFY_CODE_RESULT.IN_PROGRESS,
-                },
-                { result: VERIFY_CODE_RESULT.FAIL },
+            this.codeIdVerificationRepository.handleJobCrash(
+                Number.parseInt(job.id.toString(), 10),
             ),
         ]);
     }
 
     async compileSourceCode(
         request: MODULE_REQUEST.VerifySourceCodeRequest,
-        contractCode: SmartContractCode,
+        dataHash: string,
         contractFolder: string,
-        // contractDir: string,
+        verificationId: number,
     ) {
         // Folder name of project. Example: cw-plus
         let projectFolder = request.contractUrl.substring(
@@ -417,24 +432,16 @@ export class VerifyContractProcessor {
                 CodeId: request.codeId,
             }),
         );
-        await Promise.all([
-            // Update stage `Get source code` status to 'Success'
-            this.commonService.updateVerifyStatus(
-                this.verifyCodeStepRepository,
-                request.codeId,
-                VERIFY_STEP_CHECK_ID.GET_SOURCE_CODE,
-                VERIFY_CODE_RESULT.SUCCESS,
-                ErrorMap.GET_SOURCE_CODE_SUCCESSFUL.Code,
-            ),
-            // Update stage `Compile source code` status to 'In progress'
-            this.commonService.updateVerifyStatus(
-                this.verifyCodeStepRepository,
-                request.codeId,
-                VERIFY_STEP_CHECK_ID.COMPILE_SOURCE_CODE,
-                VERIFY_CODE_RESULT.IN_PROGRESS,
-                null,
-            ),
-        ]);
+        // Update stage `Compile source code` status to 'In progress'
+        await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
+            request.codeId,
+            {
+                step: VERIFY_STEP_CHECK_ID.COMPILE_SOURCE_CODE,
+                result: VERIFY_CODE_RESULT.IN_PROGRESS,
+                msg_code: null,
+            },
+        );
 
         let contractDir,
             workspace = false;
@@ -470,24 +477,16 @@ export class VerifyContractProcessor {
                 CodeId: request.codeId,
             }),
         );
-        await Promise.all([
-            // Update stage `Compile source code` status to 'Success'
-            this.commonService.updateVerifyStatus(
-                this.verifyCodeStepRepository,
-                request.codeId,
-                VERIFY_STEP_CHECK_ID.COMPILE_SOURCE_CODE,
-                VERIFY_CODE_RESULT.SUCCESS,
-                ErrorMap.COMPILE_SOURCE_CODE_SUCCESSFUL.Code,
-            ),
-            // Update stage `Compare data hash` status to 'In progress'
-            this.commonService.updateVerifyStatus(
-                this.verifyCodeStepRepository,
-                request.codeId,
-                VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
-                VERIFY_CODE_RESULT.IN_PROGRESS,
-                null,
-            ),
-        ]);
+        // Update stage `Compare data hash` status to 'In progress'
+        await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
+            request.codeId,
+            {
+                step: VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
+                result: VERIFY_CODE_RESULT.IN_PROGRESS,
+                msg_code: null,
+            },
+        );
 
         let codeHash;
         try {
@@ -504,13 +503,13 @@ export class VerifyContractProcessor {
             };
         }
         this._logger.log(
-            `Result hash of compiled wasm file for Code ID ${contractCode.codeId}: ${codeHash}`,
+            `Result hash of compiled wasm file for Code ID ${request.codeId}: ${codeHash}`,
         );
         this._logger.log(
-            `Result hash of network wasm file for Code ID ${contractCode.codeId}: ${contractCode.contractHash}`,
+            `Result hash of network wasm file for Code ID ${request.codeId}: ${dataHash}`,
         );
 
-        if (codeHash !== contractCode.contractHash)
+        if (codeHash !== dataHash)
             return {
                 error: ErrorMap.DATA_HASH_MISMATCH,
                 tempDir,
@@ -525,24 +524,16 @@ export class VerifyContractProcessor {
                 CodeId: request.codeId,
             }),
         );
-        await Promise.all([
-            // Update stage `Compare data hash` status to 'Success'
-            this.commonService.updateVerifyStatus(
-                this.verifyCodeStepRepository,
-                request.codeId,
-                VERIFY_STEP_CHECK_ID.COMPARE_DATA_HASH,
-                VERIFY_CODE_RESULT.SUCCESS,
-                ErrorMap.DATA_HASH_MATCH.Code,
-            ),
-            // Update stage `Internal process` status to 'In progress'
-            this.commonService.updateVerifyStatus(
-                this.verifyCodeStepRepository,
-                request.codeId,
-                VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
-                VERIFY_CODE_RESULT.IN_PROGRESS,
-                null,
-            ),
-        ]);
+        // Update stage `Internal process` status to 'In progress'
+        await this.codeIdVerificationRepository.updateVerifyStep(
+            verificationId,
+            request.codeId,
+            {
+                step: VERIFY_STEP_CHECK_ID.INTERNAL_PROCESS,
+                result: VERIFY_CODE_RESULT.IN_PROGRESS,
+                msg_code: null,
+            },
+        );
 
         let zipFile = `${process.env.ZIP_PREFIX}${request.codeId}.zip`;
         try {

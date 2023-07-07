@@ -96,6 +96,10 @@ export const ErrorMap = {
         Code: 'E011',
         Message: 'Update contract entity failed.',
     },
+    CANNOT_PROCESS: {
+        Code: 'E012',
+        Message: 'Infrastructure error. Cannot process. Please try again!'
+    },
     E400: {
         Code: 'E400',
         Message: `Bad request`,

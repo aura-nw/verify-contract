@@ -50,6 +50,7 @@
     "dockerode": "^3.3.4",
     "fs": "0.0.1-security",
     "mysql2": "^3.2.0",
+    "pg": "^8.11.0",
     "redis": "^4.5.1",
     "rimraf": "^3.0.2",
     "source-map-support": "^0.5.21",
