@@ -14,19 +14,13 @@ import { BullModule } from '@nestjs/bull';
 import { ConfigModule } from '@nestjs/config';
 import { VerifyContractProcessor } from './processors/verify-contract.processor';
 import {
-    SmartContractCodeRepository,
-    SmartContractsRepository,
-    VerifyCodeStepRepository,
-    VerifyItemCheckRepository,
+    CodeIdVerificationRepository,
+    CodeRepository,
 } from './repositories/impls';
-const entities = [
-    ENTITIES_CONFIG.SMART_CONTRACTS,
-    ENTITIES_CONFIG.SMART_CONTRACT_CODE,
-    ENTITIES_CONFIG.VERIFY_CODE_STEP,
-    ENTITIES_CONFIG.VERIFY_ITEM_CHECK,
-];
+import { DetectStuckJobsProcessor } from './processors/detect-stuck-jobs.processor';
+const entities = [ENTITIES_CONFIG.CODE, ENTITIES_CONFIG.CODE_ID_VERIFICATION];
 const controllers = [VerifyContractController];
-const processors = [VerifyContractProcessor];
+const processors = [VerifyContractProcessor, DetectStuckJobsProcessor];
 // @Global()
 @Module({
     imports: [
@@ -48,19 +42,21 @@ const processors = [VerifyContractProcessor];
                 db: parseInt(process.env.REDIS_DB, 10),
             },
             prefix: 'verify-contract',
-            defaultJobOptions: {
-                removeOnComplete: true,
-                removeOnFail: true,
-                timeout: 30000000,
-            },
-            settings: {
-                stalledInterval: 30000,
-                maxStalledCount: 10,
-            },
         }),
-        BullModule.registerQueue({
-            name: 'verify-source-code',
-        }),
+        BullModule.registerQueue(
+            {
+                name: 'verify-source-code',
+                settings: {
+                    stalledInterval: 30000,
+                    maxStalledCount: 10,
+                },
+                processors: ['./src/processors/verify-contract.processor.ts']
+            },
+            {
+                name: 'detect-stuck-jobs',
+                processors: ['./src/processors/detect-stuck-jobs.processor.ts']
+            }
+        ),
         RedisService,
         CommonService,
     ],
@@ -76,20 +72,12 @@ const processors = [VerifyContractProcessor];
         CommonService,
         // repositories
         {
-            provide: REPOSITORY_INTERFACE.ISMART_CONTRACTS_REPOSITORY,
-            useClass: SmartContractsRepository,
+            provide: REPOSITORY_INTERFACE.ICODE_ID_VERIFICATION_REPOSITORY,
+            useClass: CodeIdVerificationRepository,
         },
         {
-            provide: REPOSITORY_INTERFACE.ISMART_CONTRACT_CODE_REPOSITORY,
-            useClass: SmartContractCodeRepository,
-        },
-        {
-            provide: REPOSITORY_INTERFACE.IVERIFY_CODE_STEP_REPOSITORY,
-            useClass: VerifyCodeStepRepository,
-        },
-        {
-            provide: REPOSITORY_INTERFACE.IVERIFY_ITEM_CHECK_REPOSITORY,
-            useClass: VerifyItemCheckRepository,
+            provide: REPOSITORY_INTERFACE.ICODE_REPOSITORY,
+            useClass: CodeRepository,
         },
         // processors
         ...processors,
