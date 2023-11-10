@@ -45,7 +45,7 @@
     "@nestjs/schedule": "^2.1.0",
     "@nestjs/typeorm": "^9.0.1",
     "aws-sdk": "^2.1261.0",
-    "axios": "^0.21.2",
+    "axios": "^1.6.0",
     "bull": "^4.10.1",
     "dockerode": "^3.3.4",
     "fs": "0.0.1-security",
