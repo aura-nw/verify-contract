@@ -1,12 +1,24 @@
-import { OnQueueActive, OnQueueCompleted, OnQueueError, OnQueueFailed, Process, Processor } from "@nestjs/bull";
-import { Inject, Logger } from "@nestjs/common";
-import { REPOSITORY_INTERFACE } from "../module.config";
-import { ICodeIdVerificationRepository } from "../repositories";
-import { RedisService } from "../shared/services";
-import { ErrorMap, VERIFICATION_STATUS, VERIFY_CODE_RESULT, VERIFY_STEP_CHECK_ID } from "../common";
-import { LessThanOrEqual } from "typeorm";
-import { CodeIdVerification } from "../entities";
-import { Job } from "bull";
+import {
+    OnQueueActive,
+    OnQueueCompleted,
+    OnQueueError,
+    OnQueueFailed,
+    Process,
+    Processor,
+} from '@nestjs/bull';
+import { Inject, Logger } from '@nestjs/common';
+import { REPOSITORY_INTERFACE } from '../module.config';
+import { ICodeIdVerificationRepository } from '../repositories';
+import { RedisService } from '../shared/services';
+import {
+    ErrorMap,
+    VERIFICATION_STATUS,
+    VERIFY_CODE_RESULT,
+    VERIFY_STEP_CHECK_ID,
+} from '../common';
+import { LessThanOrEqual } from 'typeorm';
+import { CodeIdVerification } from '../entities';
+import { Job } from 'bull';
 
 @Processor('detect-stuck-jobs')
 export class DetectStuckJobsProcessor {
@@ -25,30 +37,31 @@ export class DetectStuckJobsProcessor {
     }
 
     @Process({
-        name: 'get-stuck-jobs'
+        name: 'get-stuck-jobs',
     })
     async detectStuckJobs() {
-        const stuckVerifications = await this.codeIdVerificationRepository.getStuckJobs(
-            VERIFICATION_STATUS.VERIFYING,
-            {
-                step: VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
-                result: VERIFY_CODE_RESULT.SUCCESS,
-                msg_code: ErrorMap.GET_DATA_HASH_SUCCESSFUL.Code,
-            }
-        );
+        const stuckVerifications =
+            await this.codeIdVerificationRepository.getStuckJobs(
+                VERIFICATION_STATUS.VERIFYING,
+                {
+                    step: VERIFY_STEP_CHECK_ID.GET_DATA_HASH,
+                    result: VERIFY_CODE_RESULT.SUCCESS,
+                    msg_code: ErrorMap.GET_DATA_HASH_SUCCESSFUL.Code,
+                },
+                'auratestnet',
+            );
 
-        stuckVerifications
-            .map(verification => {
-                this.ioredis.publish(
-                    process.env.REDIS_CHANNEL,
-                    JSON.stringify({
-                        Code: ErrorMap.CANNOT_PROCESS.Code,
-                        Message: ErrorMap.CANNOT_PROCESS.Message,
-                        CodeId: verification.codeId,
-                        Verified: false,
-                    }),
-                );
-            });
+        stuckVerifications.map((verification) => {
+            this.ioredis.publish(
+                process.env.REDIS_CHANNEL,
+                JSON.stringify({
+                    Code: ErrorMap.CANNOT_PROCESS.Code,
+                    Message: ErrorMap.CANNOT_PROCESS.Message,
+                    CodeId: verification.codeId,
+                    Verified: false,
+                }),
+            );
+        });
     }
 
     @OnQueueActive()

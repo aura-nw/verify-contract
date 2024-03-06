@@ -4,8 +4,9 @@ import {
     REPOSITORY_INTERFACE,
     SERVICE_INTERFACE,
 } from './module.config';
+import { ConfigService as NestConfigService } from '@nestjs/config';
 import { SharedModule } from './shared/shared.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService, RedisService, CommonService } from './shared/services';
 import { VerifyContractService } from './services/impls';
 import { HttpModule } from '@nestjs/axios';
@@ -18,21 +19,33 @@ import {
     CodeRepository,
 } from './repositories/impls';
 import { DetectStuckJobsProcessor } from './processors/detect-stuck-jobs.processor';
+import ormConfig, { getHoroscopeDbNames } from './common/config/orm.config';
 const entities = [ENTITIES_CONFIG.CODE, ENTITIES_CONFIG.CODE_ID_VERIFICATION];
 const controllers = [VerifyContractController];
 const processors = [VerifyContractProcessor, DetectStuckJobsProcessor];
 // @Global()
+const databaseConfigs = getHoroscopeDbNames().map((dbName) => {
+    return TypeOrmModule.forRootAsync({
+        name: `db-${dbName}`,
+        imports: [ConfigModule.forFeature(ormConfig)],
+        useFactory: (config: NestConfigService) =>
+            config.get(`orm.${dbName}`),
+        inject: [NestConfigService],
+    });
+});
 @Module({
     imports: [
-        ConfigModule.forRoot(),
-        SharedModule,
-        TypeOrmModule.forRootAsync({
-            imports: [SharedModule, AppModule],
-            useFactory: (configService: ConfigService) =>
-                configService.typeOrmConfig,
-            inject: [ConfigService],
+        ConfigModule.forRoot({
+            isGlobal: true,
         }),
-        TypeOrmModule.forFeature([...entities]),
+        SharedModule,
+        // TypeOrmModule.forRootAsync({
+        //     imports: [SharedModule, AppModule],
+        //     useFactory: (configService: ConfigService) =>
+        //         configService.typeOrmConfig,
+        //     inject: [ConfigService],
+        // }),
+        ...databaseConfigs,
         HttpModule,
         BullModule.forRoot({
             redis: {
@@ -50,12 +63,12 @@ const processors = [VerifyContractProcessor, DetectStuckJobsProcessor];
                     stalledInterval: 30000,
                     maxStalledCount: 10,
                 },
-                processors: ['./src/processors/verify-contract.processor.ts']
+                processors: ['./src/processors/verify-contract.processor.ts'],
             },
             {
                 name: 'detect-stuck-jobs',
-                processors: ['./src/processors/detect-stuck-jobs.processor.ts']
-            }
+                processors: ['./src/processors/detect-stuck-jobs.processor.ts'],
+            },
         ),
         RedisService,
         CommonService,
