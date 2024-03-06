@@ -43,12 +43,11 @@ export class VerifyContractService implements IVerifyContractService {
         this.ioredis = this.redisService.getIoRedis(this.ioredis);
         this.detectQueue.add(
             'get-stuck-jobs',
-            {
-            },
+            {},
             {
                 priority: 2,
                 removeOnComplete: true,
-                removeOnFail: true,
+                removeOnFail: false,
                 repeat: {
                     every: parseInt(process.env.MILLISECOND_DETECT_JOBS),
                 },
